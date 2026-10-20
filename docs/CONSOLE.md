@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Console Notes
-Version:     v1.1.0
+Version:     v1.2.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      0c1c41eb6d3d9e273a1561e0829494e11c367237ba7d56868fa1857cd4dc5190
+SHA256:      d40853a4917b3940b88d552c50173a9dda8f1a9f4d3773a8111c94843df7ee2e
 Chain:       solana-mainnet
-Tx:          2mS6Ursnq5ZBiKhR6Hk7dddiXa42YjsNMpaBBNYtqyK1jvY9GijuJEd2YUkf5C6EQg2swGfF64z1ue49FywYm3Yn
+Tx:          4JVvHLZYsPdhN2o2f2ciKTW8mZzARBYECiyynyrE3r4dkQSTNZZuDBMPmFb2LrRyBtFQymy1Ddtwb4fa2t7HGTJr
 License:     GPL-3.0-or-later
 ```
 
@@ -27,15 +27,27 @@ License:     GPL-3.0-or-later
 From the first console run, 2026-10-20:
 
 - **CPUs: 2.** The OS reports 8, but the payload's affinity mask allows only
-  cores 6 and 7. Two threads is the default until a way to widen the mask is
-  found. This is the biggest limit for llama.cpp.
+  cores 6 and 7, and the payload may not widen it: `cpuset_setaffinity` to
+  all 8 fails with EPERM for the thread and for the process (cpuprobe below).
+  Widening would need a kernel change, which is out of scope. This is the
+  biggest limit for llama.cpp. The tools default to 1 thread (patches/0001).
+- **Thread priority:** payload threads run with policy 3 (round robin) at
+  Sony priority 700, where 256 is the highest and 767 the lowest. The shell
+  UI runs at 605, yet at 2 normal-priority threads its heartbeat lapsed for
+  up to 32 s; at `--prio -1` (767) it did not (BENCH.md).
+- **Memory pressure:** a ~1 GB payload (493 MiB model read into memory) pushed
+  about 200 MB of the system to swap (`VM Stats ... swap out` in the kernel
+  log). The payload's memory is the shell's "flexible" memory.
 - **Memory: about 3.5 GiB.** The largest single malloc that could be touched was
   3.56 GiB; many 256 MiB blocks stopped at 3.50 GiB (`errno 22`). malloc
   accepts 6 GiB but touching it fails, so always touch, never trust malloc.
   Model weights + KV cache must fit in ~3.4 GiB.
-- **Model files: mmap works.** A 1 GiB file in `/data/PS4LM` mapped and faulted
-  in with no bad pages, at 48 MB/s. Writing it ran at 45 MB/s. At that rate
-  a 2 GiB model takes about 45 s to load from `/data`.
+- **Model files: mmap works, but slowly.** A 1 GiB file in `/data/PS4LM`
+  mapped and faulted in with no bad pages, at 48 MB/s. Writing it ran at
+  45 MB/s. At that rate a 2 GiB model takes about 45 s to load from `/data`.
+  llama.cpp generates about 13x slower from mmap'd weights than from weights
+  read into memory (PORTING.md 15), so the tools run without mmap.
+- **FTP upload from the Mac:** a 499 MiB model went up in 8 s (~63 MB/s).
 - **Bandwidth:** memcpy 1.67 GB/s on 1 thread, 4.52 GB/s on 2.
 - **Compute:** AVX fp32 dot product 5.70 GFLOPS on 1 thread, 10.26 on 2.
   No AVX2 and no FMA, as expected for Jaguar.
@@ -65,6 +77,26 @@ hello: sent the line to 192.168.50.254:9999
 ```
 
 The same line reached `scripts/logs.sh` on the Mac.
+
+## cpuprobe
+
+`scripts/run.sh cpuprobe`, 2026-10-20, verbatim:
+
+```text
+hw.ncpu                8
+process mask           6 7
+thread mask            6 7
+main schedparam        rc 0 policy 3 priority 700
+main pthread_getprio   700
+getpriority            0 errno 0
+new thread mask        6 7
+new thread prio        700
+widen thread           rc -1 errno 1
+  now                  6 7
+widen process          rc -1 errno 1
+  now                  6 7
+process mask at end    6 7
+```
 
 ## memprobe
 

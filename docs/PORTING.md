@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Porting Notes
-Version:     v1.1.0
+Version:     v1.2.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      414a3a29c58e3f923f63ab1b54162d614116f97101e0c4faf72dae75e0e9ef46
+SHA256:      34ccd19cfe6b36578b8a9d160fab77393b9b1f37d6f075fd7f76861e177d3d19
 Chain:       solana-mainnet
-Tx:          4YbMzG6w8MXjSoU5Rhqwaf322DgN4r3uX1YtQJWdXA28G3WhJ19pxQwWWACWyhiZ1u8HeRCT5NG7xpocmxBDPgZX
+Tx:          3gG3Vujc3PKTm2UaiCnhar1GYN4J5F8mbBUBzfmgZm6s798uYQLVeSTigPGcHBKc2B6uiXsP7XYqpUXkRHFj5QyS
 License:     GPL-3.0-or-later
 ```
 
@@ -116,7 +116,9 @@ Every workaround: symptom, cause, fix, file. Newest last.
 - Fix: PS4LM's own `mbtowc` on `mbrtowc`. A definition in the program wins
   over the shared library's, so the tools no longer import `mbtowc`.
 - File: `ps4/compat/compat.c`.
-- Status: built; not yet run on the console (it went offline, see below).
+- Status: works on the console (2026-10-20): `llama-cli --version`,
+  `llama-server --version`, `llama-bench --help` and `--list-devices` all
+  print.
 
 ## 12. Shallow submodule: build 1 and the "latest" web UI
 
@@ -127,6 +129,45 @@ Every workaround: symptom, cause, fix, file. Newest last.
 - Fix: `build-llama.sh` passes `LLAMA_BUILD_NUMBER` from the pinned tag
   (b11608) and stops if the submodule is at another commit.
 - File: `scripts/build-llama.sh`.
+
+## 13. Thread count and busy-wait defaults (patches/0001)
+
+- Symptom: none yet; the guard comes from PS5LM, where llama.cpp's default
+  thread count plus busy-wait polling took every allowed CPU and the console
+  shut itself off. Here the default was 4 threads (half of the 8 CPUs the OS
+  reports) on a payload that may use 2, with `--poll 50`.
+- Fix: under `PS4LM`, `common_cpu_get_num_math()` returns the CPUs in the
+  payload's affinity mask minus 2, at least 1 (so 1 here), and `--poll`
+  defaults to 0 in `common`, `llama-bench` and ggml's own thread-pool
+  defaults. `-t` and `--poll` still override.
+- File: `patches/0001-ps4-safe-cpu-defaults.patch`.
+
+## 14. ggml's thread affinity and priority do nothing (patches/0002)
+
+- Symptom: `-C`, `--cpu-strict` and `--prio` were accepted and ignored.
+- Cause: ggml-cpu.c has affinity and priority code for Windows, Apple and
+  Linux only; the PS4 target falls into its "unsupported platforms" branch.
+- Fix: a `PS4LM` branch. Affinity is FreeBSD's `cpuset_setaffinity` on the
+  calling thread. Priority is only ever lowered: `--prio -1` sets Sony's
+  lowest thread priority (767; payload threads start at 700, and a lower
+  number runs first), higher values are ignored, and `set_process_priority`
+  warns and keeps normal instead of raising the nice value. The calling
+  (main) thread is never pinned; only ggml's worker threads are. The payload
+  cannot widen its mask (`probes/cpuprobe`, CONSOLE.md), so a mask outside
+  CPUs 6 and 7 just warns.
+- File: `patches/0002-ps4-thread-affinity-priority.patch`.
+
+## 15. mmap'd weights generate about 13x slower
+
+- Symptom: `llama-bench` on Qwen3 0.6B Q4_K_M, 1 thread: 4.74 t/s prompt,
+  0.34 t/s generation with the default load mode (mmap); 8.83 and 4.32 t/s
+  with `-lm none`.
+- Cause: not found. Phase 0 measured file mmap faulting in at 48 MB/s, and
+  generation behaves as if the 493 MiB of weights are read again for every
+  token rather than staying in memory.
+- Fix: read the weights into memory: `-lm none` for `llama-bench`,
+  `--no-mmap` for `llama-server` and `llama-cli` (Phase 4).
+- File: `scripts/bench.sh`.
 
 ## Checked and not needed
 
@@ -140,13 +181,13 @@ Every workaround: symptom, cause, fix, file. Newest last.
   toolchain's `*_FLAGS_INIT`, `-march=btver2` included. `build-llama.sh` never
   sets them.
 
-## Open: crashes seen on the console, 2026-10-20
+## Crashes seen on the console, 2026-10-20
 
 - The first `llama-bench --help` died with SIGSEGV (fault address 0x69) in
   `ggml_backend_load_best`, which scans the executable's directory and `/` for
-  backend `.so` files. A probe walking `/` and `/data/PS4LM/bin` with
-  `std::filesystem::directory_iterator` the same way ran clean, so the cause is
-  not found yet. Rerun after fix 11.
+  backend `.so` files. After fix 11, `llama-bench --help` and
+  `--list-devices` run clean, so this was most likely the same broken
+  `mbtowc`. Not seen again.
 - Payload addresses in the kernel log are the ELF's addresses plus
   `0x200000000 + 0x4000` (the first PT_LOAD is file offset 0x4000 at
   vaddr 0). `llvm-symbolizer --obj=<tool>.elf <address - 0x200004000>`.
@@ -163,8 +204,9 @@ Every workaround: symptom, cause, fix, file. Newest last.
 `build/llama-ps4/<tool>.imports` (`llvm-readelf --dyn-syms`, undefined,
 non-weak) and fails if any import is not exported by a stub the tool names as
 NEEDED. All three tools need `libkernel_sys`, `libkernel_web`,
-`libSceLibcInternal` and `libSceNet`, like memprobe. `llama-server` has 256
-imports, `llama-bench` 240, `llama-cli` 263; together, at llama.cpp b11608:
+`libSceLibcInternal` and `libSceNet`, like memprobe. `llama-server` has 260
+imports, `llama-bench` 244, `llama-cli` 267; together, at llama.cpp b11608
+with patches 0001 and 0002:
 
 ### libkernel_sys only (8)
 
@@ -172,22 +214,22 @@ imports, `llama-bench` 240, `llama-cli` 263; together, at llama.cpp b11608:
 fchmodat fork link openat pathconf readlink symlink unlinkat
 ```
 
-### libkernel (libkernel_web and libkernel_sys) (94)
+### libkernel (libkernel_web and libkernel_sys) (98)
 
 ```text
 __error __inet_ntop __inet_pton _close _open _read accept bind chdir
-clock_gettime close connect dlclose dlerror dlopen dlsym dup dup2 environ
+clock_gettime close connect cpuset_getaffinity cpuset_setaffinity dlclose dlerror dlopen dlsym dup dup2 environ
 execvp fchmod fcntl fstat fsync ftruncate getpeername getpid getrlimit
 getsockname getsockopt gettimeofday getuid ioctl kill listen lseek lstat
 madvise mkdir mlock mmap munmap nanosleep open pipe poll
 pthread_cond_broadcast pthread_cond_destroy pthread_cond_init
 pthread_cond_signal pthread_cond_timedwait pthread_cond_wait pthread_create
-pthread_detach pthread_getspecific pthread_join pthread_key_create
+pthread_detach pthread_getschedparam pthread_getspecific pthread_join pthread_key_create
 pthread_mutex_destroy pthread_mutex_init pthread_mutex_lock
 pthread_mutex_trylock pthread_mutex_unlock pthread_mutexattr_destroy
 pthread_mutexattr_init pthread_mutexattr_settype pthread_once
 pthread_rwlock_rdlock pthread_rwlock_unlock pthread_rwlock_wrlock
-pthread_self pthread_setspecific pthread_sigmask read recv rename select send
+pthread_self pthread_setschedparam pthread_setspecific pthread_sigmask read recv rename select send
 setpriority setsockopt shutdown sigaction sigaddset sigemptyset signal socket
 stat sysconf sysctl tcgetattr tcsetattr truncate utimes waitpid write
 ```

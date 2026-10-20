@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Roadmap
-Version:     v1.3.0
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      8e4e14a2e9e2542e8a0b0890249cdccc93dc7a7c755f45f88963b7e61bde3eaf
+SHA256:      32d04ff50f7b780d2c661e49e6a3dc085f7723c659494887752194be3cd2c954
 Chain:       solana-mainnet
-Tx:          2uvvWSrRSz9pYW5QGr5goxsEPkwFbQVpNrGLs3h2ssar2X7kaaiFc58HEnXvTs4m6Y39LBHuXp3jNhAopcRPkRQP
+Tx:          58FrpE1wTKuJvyeyqhWHTZYpQPUuq8FjYKPum4HhBLfeuVNu6y5tHNaykCzEiDb7oWSs2MorycNecUUtKrdaCTuK
 License:     GPL-3.0-or-later
 ```
 
@@ -22,7 +22,7 @@ downloads, no TLS).
 | 0 | Toolchain and console probe | 90 min | Done 2026-10-20: 2 CPUs, ~3.5 GiB, see CONSOLE.md |
 | 1 | Plumbing: send, logs, run, FTP upload | 60 min | Done 2026-10-20: `scripts/run.sh hello` builds, uploads and runs in 0.3 s |
 | 2 | Build llama.cpp for Jaguar | 2 h | Done 2026-10-20: three tools link, imports checked; see PORTING.md |
-| 3 | CPU safety patches and thread sweep | 90 min | Not started |
+| 3 | CPU safety patches and thread sweep | 90 min | Done 2026-10-20: safe max 2 threads with `--prio -1`, see BENCH.md |
 | 4 | First model, web UI from the Mac | 90 min | Not started |
 | 5 | Benchmarks and docs, fresh-clone check | 60 min | Not started |
 | 6 | Optional: auto-start, PKG, model picker | | Only after Phase 5 |
@@ -51,6 +51,24 @@ downloads, no TLS).
   `mbtowc`; the replacement (PORTING.md 11) is built but not yet run, because
   the console's homebrew services went down. First step of Phase 3: reload
   GoldHEN, run each tool with `--version`, and `llama-bench --help`.
+
+## Phase 3 acceptance
+
+- The Phase 2 crash is gone: every tool prints `--version`, and
+  `llama-bench --help` and `--list-devices` run (PORTING.md 11).
+- `patches/0001` (default threads = allowed CPUs minus 2, at least 1;
+  `--poll 0`) and `patches/0002` (affinity per worker thread, priority only
+  lowered) are applied by `build-llama.sh`. Checked on the console: defaults
+  print as 1 thread and poll 0; `-C 0xC0 --cpu-strict 1 --prio -1` runs at
+  priority 767 on CPUs 6 and 7; `--prio 2` warns and keeps normal.
+- `scripts/bench.sh`: three clean runs at 1 and 2 threads. Safe max 2, used
+  with `--prio -1` (the shell's heartbeat lapsed at normal priority). Table in
+  [BENCH.md](BENCH.md).
+- A payload cannot widen its CPU mask (`probes/cpuprobe`, EPERM), so 2 CPUs
+  is the ceiling without kernel changes, which are out of scope.
+- For Phase 4: load weights with `--no-mmap` (mmap'd weights generate 13x
+  slower, PORTING.md 15), launch with `-t 2 --prio -1`, and watch swap: a
+  ~1 GB payload already pushed about 200 MB of the shell to swap.
 
 ## Stop and ask
 
