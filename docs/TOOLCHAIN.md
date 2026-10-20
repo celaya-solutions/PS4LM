@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Toolchain
-Version:     v1.1.0
+Version:     v1.2.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      0cf8b987024c476eb009919857ddc7b2646a8425c7f75c64b64bb169136ba711
+SHA256:      a7499a92378df6b328f07dc2e3c6c70fc4df94a0c5fd353834f80b01180c2be4
 Chain:       solana-mainnet
-Tx:          Beonm9L9gxjAY3HBVnhbK7kpdasR8p9VZB4Eq1ufsdQ2uimwvwMEUatYoCSPmLD4JNFNJG392r3g3n3gDvBUr8N
+Tx:          3F7BvEpaihSaN6bHwjpFbVrmmAmiHsbvv8Vuv9qwgHzc9aAWPFW1Atca5sYau29Gfzkz63bvt7VvDF1HM7GPXvRm
 License:     GPL-3.0-or-later
 ```
 
@@ -64,6 +64,32 @@ exports (`statfs`, `sceKernelGetHwModelName`).
 5. Project ELFs go to 9021 (`scripts/send.sh`). elfldr gives the payload the
    socket as stdout, so its output streams back to the Mac.
 
-elfldr also takes `file:/path/to.elf?args=...` on 9021, the same protocol as
-the PS5 elfldr PS5LM's `run.sh` uses, so argv can be passed without a file.
 GoldHEN also serves a kernel log on 3232.
+
+## Running a tool with arguments
+
+`scripts/run.sh TOOL [ARGS...]` builds a probe (or takes a built tool), uploads
+it with curl to `/data/PS4LM/bin/` over FTP, then sends elfldr one line:
+`file:/data/PS4LM/bin/TOOL.elf?args=...`. elfldr v0.7 reads the file and passes
+the args as argv; argv[0] is the file name. This is the path that works, so no
+args file is used. The rules, from elfldr's `socksrv.c` and `uri.c`:
+
+- Args are split on spaces. A backslash keeps the next character, so `run.sh`
+  writes a space inside an argument as `\ ` and a backslash as `\\`.
+- `%`, `&`, `#` and control characters are percent-encoded. elfldr's decoder
+  skips a `%XX` in the last three characters, so `run.sh` then adds a trailing
+  backslash, which elfldr drops.
+- The whole line must fit in 1024 bytes. Longer prompts need a file.
+
+Checked on the console with `run.sh hello "two words" 'back\slash' 'a&b#c' 50%`.
+
+## Logs
+
+Tools link `ps4/compat/log.c`. At startup it points stdout and stderr at a pipe,
+and a thread copies every byte to elfldr's socket (the terminal running
+`send.sh` or `run.sh`), to the Mac's `scripts/logs.sh`, and to
+`/data/PS4LM/logs/<tool>-<unix-time>.log`. The Mac address comes from
+`/data/PS4LM/loghost.txt`, which `run.sh` rewrites on every run; without that
+file, from the address baked in at build time. If the Mac does not answer within
+a second, the file still gets everything. `send.sh` does not touch
+`loghost.txt`, so it uses whatever the last `run.sh` wrote.

@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.0.0
+Version:     v1.1.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      7c1d4ab510156bd5a0e52e80ff45e88764f791f522645b97652ba1682239dbbf
+SHA256:      29d84f18d38c3e83f9b36d17723140d1ca3eeb0120b55a814efb484d9b41fa0c
 Chain:       solana-mainnet
-Tx:          3WqVkoVpoA9jRzRipy8oCgASbr6eXVm85ELq9hvrnf16WLGpetT54ivZeutnHD93uU8QV556F6hsN6zj8UTPp61M
+Tx:          43Dk2zp68pf8gWokFfDgFqPFW5NPbBjFBqXUyBVvH1CpturxLHin6NmETvSYJpk1hgLJFTy2EEAfkptE9mipyiky
 License:     GPL-3.0-or-later
 ```
 
@@ -21,7 +21,7 @@ CPU only, one console, one interface. It follows the layout and fixes of
 
 ## Status
 
-Phase 0 (toolchain and console probe). See [docs/ROADMAP.md](docs/ROADMAP.md).
+Phase 1 (plumbing: send, logs, run, FTP upload). See [docs/ROADMAP.md](docs/ROADMAP.md).
 Nothing here runs a model yet.
 
 ## What you need
@@ -42,8 +42,9 @@ make -C probes                             # build/probes/hello.elf, memprobe.el
 
 scripts/console-setup.sh                   # elfldr on 9021 (through GoldHEN's 9090)
 scripts/logs.sh                            # in a second terminal
-scripts/send.sh build/probes/hello.elf
-scripts/send.sh build/probes/memprobe.elf
+scripts/run.sh hello "two words"           # build, upload over FTP, run with args
+scripts/run.sh memprobe
+scripts/send.sh build/probes/hello.elf     # or send an ELF straight to elfldr
 ```
 
 Settings live in `scripts/env.sh`. `PS4_LOADER_PORT` is the enabler's payload
