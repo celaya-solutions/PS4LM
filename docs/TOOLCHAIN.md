@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Toolchain
-Version:     v1.2.0
+Version:     v1.3.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      a7499a92378df6b328f07dc2e3c6c70fc4df94a0c5fd353834f80b01180c2be4
+SHA256:      e6b87f4ffad31224c359b267775d7b0353f11a35f9868dbe4769f1767db9006c
 Chain:       solana-mainnet
-Tx:          3F7BvEpaihSaN6bHwjpFbVrmmAmiHsbvv8Vuv9qwgHzc9aAWPFW1Atca5sYau29Gfzkz63bvt7VvDF1HM7GPXvRm
+Tx:          3hxGVobZL92ebZgqmh5Rn7kDwbgBTy1CBpafAFKLAtQRiKGa2YXxXP89EEvjvMRbi344cXKpiGtDURt8jxKJxgDq
 License:     GPL-3.0-or-later
 ```
 
@@ -49,6 +49,25 @@ Every PS4LM build passes `-march=btver2 -mtune=btver2`.
 Programs are position independent executables. `orbis-clang` links
 `-lkernel_web` by default; pass `-lkernel_sys` for the functions only that stub
 exports (`statfs`, `sceKernelGetHwModelName`).
+
+## Building llama.cpp
+
+`scripts/build-llama.sh` builds `llama-server`, `llama-bench` and `llama-cli`
+into `build/llama-ps4/bin/<tool>.elf` (about 30 s from clean on an M5).
+
+- `third_party/llama.cpp` is a shallow submodule at tag `b11608`, PS5LM's pin
+  today. The script checks the commit and passes the build number, so
+  `--version` and the embedded web UI match the tag.
+- `ps4/CMakeLists.txt` is the top-level project: llama.cpp as a subdirectory,
+  plus `ps4/compat/compat.c` and `log.c` in every tool, linked against
+  `libkernel_sys`.
+- `ps4/toolchain.cmake` includes the SDK's `orbis.cmake` and adds
+  `-march=btver2 -mtune=btver2 -DPS4LM=1` and `-include ps4/compat/compat.h`.
+- The script checks every CMake option against the pinned `CMakeLists.txt`,
+  fails if CMake ignored one, and fails if a tool imports a symbol no SDK stub
+  exports.
+
+Every workaround is in [PORTING.md](PORTING.md).
 
 ## Load path
 
