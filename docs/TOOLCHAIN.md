@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Toolchain
-Version:     v1.0.0
+Version:     v1.1.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      65c04ef2ba1fe379b34bd38b04d50811b731ad8dea88d78e5454f155215c23e3
+SHA256:      0cf8b987024c476eb009919857ddc7b2646a8425c7f75c64b64bb169136ba711
 Chain:       solana-mainnet
-Tx:          E5VhYEtiHGcRm2bHgc1YgBGnTSg7bVNgQA1FDSRGfEvtDs2xkYC8BiWE7qjF5TgB3poiy1Fs22gm1TgR3vZrGMU
+Tx:          Beonm9L9gxjAY3HBVnhbK7kpdasR8p9VZB4Eq1ufsdQ2uimwvwMEUatYoCSPmLD4JNFNJG392r3g3n3gDvBUr8N
 License:     GPL-3.0-or-later
 ```
 
@@ -31,7 +31,7 @@ Option B (OpenOrbis) is not needed: Option A builds C++17 with libc++.
 | Linker | `ld.lld` 18 from the `llvm@18` keg | The separate `lld` formula (23.x) is not used. |
 | SDK | ps4-payload-dev/sdk `v0.9` | `make DESTDIR=~/ps4dev/sdk install` |
 | C++ runtime | libc++, libc++abi, libunwind 15.0.7, static | Built by the SDK's own `libcxx.sh`. C++17 including `std::thread` and `std::optional` builds and links (`probes/memprobe`). |
-| elfldr | ps4-payload-dev/elfldr `v0.7` | `~/ps4dev/payloads/elfldr.elf`, sha256 pinned in `scripts/setup-sdk.sh` |
+| elfldr | ps4-payload-dev/elfldr `v0.7` | `~/ps4dev/payloads/elfldr.bin`, sha256 pinned in `scripts/setup-sdk.sh` |
 | ftpsrv | ps5-payload-dev/ftpsrv `v0.21.1` | `ftpsrv-ps4.elf`, only used when nothing listens on 2121 |
 | Host tools | cmake, ninja, socat, wget | wget is needed by the SDK's `libcxx.sh` |
 
@@ -53,8 +53,11 @@ exports (`statfs`, `sceKernelGetHwModelName`).
 ## Load path
 
 1. The owner loads the homebrew enabler (GoldHEN on the test console).
-2. `scripts/console-setup.sh` sends `elfldr.elf` to the enabler's payload port,
+2. `scripts/console-setup.sh` sends `elfldr.bin` to the enabler's payload port,
    `PS4_LOADER_PORT`: GoldHEN's BinLoader listens on 9090, HEN VTX on 9020.
+   The `.bin` build, because GoldHEN's BinLoader rejects `elfldr.elf`
+   (`Error handling payload` in klog). The BinLoader takes one connection and
+   then stops listening, so the script never tests 9090: it sends and retries.
 3. elfldr listens on 9021 (`PS4_ELFLDR_PORT`).
 4. FTP on 2121: GoldHEN runs its own FTP server there. If nothing answers on
    2121, `console-setup.sh` sends `ftpsrv-ps4.elf`.

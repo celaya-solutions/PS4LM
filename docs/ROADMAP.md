@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Roadmap
-Version:     v1.0.0
+Version:     v1.1.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      7b29d60717a09acc5d90f6842ed0efd313d7164f671cee4874cec3847186a673
+SHA256:      19f96a69a3d95e7b86300f17c2a9ab5a86b909c04779c9248224f942834cd661
 Chain:       solana-mainnet
-Tx:          398jkFqT135p5gzEo1wLaeYuEE4RRmB5H241axpwbKiD8mvgfEm7J4DviiYaqFE4s8ft15pjZUqugoPzJSBg8wSy
+Tx:          67VbbNKdBLjdEeGYBkXvTq64hkiyo4MbrRJopaPRkiFra4FJF14ChJs6s5pR4VXB7Ht8XhyNcGxQ4WwQq7H5uDii
 License:     GPL-3.0-or-later
 ```
 
@@ -19,7 +19,7 @@ downloads, no TLS).
 
 | Phase | What | Timebox | Status |
 |---|---|---|---|
-| 0 | Toolchain and console probe | 90 min | In progress: SDK and probes built; console run pending |
+| 0 | Toolchain and console probe | 90 min | Done 2026-10-20: 2 CPUs, ~3.5 GiB, see CONSOLE.md |
 | 1 | Plumbing: send, logs, run, FTP upload | 60 min | Not started |
 | 2 | Build llama.cpp for Jaguar | 2 h | Not started |
 | 3 | CPU safety patches and thread sweep | 90 min | Not started |

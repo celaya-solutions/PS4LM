@@ -27,13 +27,24 @@ wait_port() { # port seconds
     return 1
 }
 
-[ -f "$dir/elfldr.elf" ] || { echo "console-setup: run scripts/setup-sdk.sh first" >&2; exit 1; }
+[ -f "$dir/elfldr.bin" ] || { echo "console-setup: run scripts/setup-sdk.sh first" >&2; exit 1; }
+
+# GoldHEN's BinLoader takes one connection and then stops listening until it is
+# switched off and on again, so never test the loader port: send straight away
+# and retry while it refuses.
+send_loader() { # file seconds
+    for _ in $(seq 1 "$2"); do
+        socat -u "FILE:$1" "TCP:$host:$loader" 2>/dev/null && return 0
+        sleep 1
+    done
+    return 1
+}
 
 if open_port "$elfldr"; then
     echo "console-setup: elfldr already listening on $host:$elfldr"
 else
-    open_port "$loader" || { echo "console-setup: nothing on $host:$loader, is the homebrew enabler loaded?" >&2; exit 1; }
-    socat -u "FILE:$dir/elfldr.elf" "TCP:$host:$loader"
+    send_loader "$dir/elfldr.bin" "${PS4_LOADER_WAIT:-60}" ||
+        { echo "console-setup: $host:$loader refused for ${PS4_LOADER_WAIT:-60} s, switch the BinLoader off and on (GoldHEN > Server Settings)" >&2; exit 1; }
     wait_port "$elfldr" 20 || { echo "console-setup: elfldr did not come up on $host:$elfldr" >&2; exit 1; }
     echo "console-setup: elfldr listening on $host:$elfldr"
 fi

@@ -5,8 +5,9 @@ set -euo pipefail
 
 SDK_REPO=https://github.com/ps4-payload-dev/sdk
 SDK_TAG=v0.9
-ELFLDR_URL=https://github.com/ps4-payload-dev/elfldr/releases/download/v0.7/elfldr.elf
-ELFLDR_SHA256=cc08f39eee46f9c27d778486f7028f05605bd63e758640f83cd595ed270f54e4
+# The .bin build: GoldHEN's BinLoader rejects elfldr.elf ("Error handling payload").
+ELFLDR_URL=https://github.com/ps4-payload-dev/elfldr/releases/download/v0.7/elfldr.bin
+ELFLDR_SHA256=9525dc95393ab943758db69a1f49fea6e82f36f2821bf5f41bc00bfc4d6f75df
 FTPSRV_URL=https://github.com/ps5-payload-dev/ftpsrv/releases/download/v0.21.1/ftpsrv-ps4.elf
 FTPSRV_SHA256=5f00e2df7fa8ab7daa084343f38394e6672cd389e03fc8598a54d7d9e1d58d16
 
@@ -34,7 +35,7 @@ fetch() { # url dest sha256
 }
 
 mkdir -p "$PAYLOAD_DIR"
-fetch "$ELFLDR_URL" "$PAYLOAD_DIR/elfldr.elf" "$ELFLDR_SHA256"
+fetch "$ELFLDR_URL" "$PAYLOAD_DIR/elfldr.bin" "$ELFLDR_SHA256"
 fetch "$FTPSRV_URL" "$PAYLOAD_DIR/ftpsrv-ps4.elf" "$FTPSRV_SHA256"
 
 if [ "$(cat "$SDK_DIR/.ps4lm-sdk-tag" 2>/dev/null)" = "$SDK_TAG" ] &&
