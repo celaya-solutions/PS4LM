@@ -8,8 +8,11 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <wchar.h>
 
 #include "compat.h"
 
@@ -44,6 +47,26 @@ int pipe2(int fds[2], int flags) {
         return -1;
     }
     return 0;
+}
+
+/* libSceLibcInternal exports mbtowc, but in a payload it raises
+ * PRX_RUNTIME_ERROR on every call (probes/libcprobe), and libc++'s iostream
+ * setup calls it through codecvt<wchar_t>::do_encoding before main. mbrtowc
+ * works, so this one replaces Sony's: the linker takes a definition in the
+ * program over the shared library's. */
+int mbtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n) {
+    static mbstate_t state;
+    if (s == NULL) {
+        memset(&state, 0, sizeof state);
+        return 0; /* no state-dependent encodings */
+    }
+    const size_t r = mbrtowc(pwc, s, n, &state);
+    if (r == (size_t)-1 || r == (size_t)-2) {
+        memset(&state, 0, sizeof state);
+        errno = EILSEQ;
+        return -1;
+    }
+    return (int)r;
 }
 
 /* Declared by the SDK's sys/mman.h, exported by nothing; libkernel exports
