@@ -1,0 +1,106 @@
+diff --git a/common/common.cpp b/common/common.cpp
+index 4dd21596b..b84458bbe 100644
+--- a/common/common.cpp
++++ b/common/common.cpp
+@@ -283,6 +283,19 @@ bool set_process_priority(enum ggml_sched_priority prio) {
+         return true;
+     }
+ 
++#if defined(PS4LM)
++    // A PS4 payload only ever lowers its priority (patches/0002). Low is set
++    // per thread by ggml; the process-wide nice value is a best effort.
++    if (prio > GGML_SCHED_PRIO_NORMAL) {
++        COM_WRN("PS4LM: priority %d is higher than normal, keeping normal\n", prio);
++        return true;
++    }
++    if (setpriority(PRIO_PROCESS, 0, 5) != 0) {
++        COM_WRN("PS4LM: process nice value not lowered: %s (%d)\n", strerror(errno), errno);
++    }
++    return true;
++#endif
++
+     int p = 0;
+     switch (prio) {
+         case GGML_SCHED_PRIO_LOW:      p =  5;  break;
+diff --git a/ggml/src/ggml-cpu/ggml-cpu.c b/ggml/src/ggml-cpu/ggml-cpu.c
+index 5428d5164..924e363bf 100644
+--- a/ggml/src/ggml-cpu/ggml-cpu.c
++++ b/ggml/src/ggml-cpu/ggml-cpu.c
+@@ -2695,6 +2695,53 @@ static bool ggml_thread_apply_priority(int32_t prio) {
+     return true;
+ }
+ 
++#elif defined(PS4LM)
++// PS4 payload (patches/0002): FreeBSD 9 cpuset per thread, and Sony's pthread
++// priorities, where 256 is the highest, 767 the lowest and payload threads
++// start at 700. A priority is only ever lowered, and the calling thread is
++// never pinned (see the callers).
++#include <sys/param.h>
++#include <sys/cpuset.h>
++
++static bool ggml_thread_apply_affinity(const bool * mask) {
++    cpuset_t cpuset;
++    CPU_ZERO(&cpuset);
++
++    for (uint32_t i = 0; i < GGML_MAX_N_THREADS && i < CPU_SETSIZE; i++) {
++        if (mask[i]) {
++            CPU_SET(i, &cpuset);
++        }
++    }
++
++    if (cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(cpuset), &cpuset) != 0) {
++        fprintf(stderr, "warn: failed to set affinity mask : %s (%d)\n", strerror(errno), errno);
++        return false;
++    }
++
++    return true;
++}
++
++static bool ggml_thread_apply_priority(int32_t prio) {
++    // Normal keeps the inherited priority; higher ones are not applied.
++    if (prio != GGML_SCHED_PRIO_LOW) {
++        return true;
++    }
++
++    struct sched_param p;
++    int policy;
++    int32_t err = pthread_getschedparam(pthread_self(), &policy, &p);
++    if (err == 0 && p.sched_priority < 767) {
++        p.sched_priority = 767;
++        err = pthread_setschedparam(pthread_self(), policy, &p);
++    }
++    if (err != 0) {
++        fprintf(stderr, "warn: failed to set thread priority %d : %s (%d)\n", prio, strerror(err), err);
++        return false;
++    }
++
++    return true;
++}
++
+ #else // unsupported platforms
+ 
+ static bool ggml_thread_apply_affinity(const bool * mask) {
+@@ -3296,9 +3343,11 @@ static void ggml_graph_compute_kickoff(struct ggml_threadpool * threadpool, int
+     if (threadpool->pause) {
+        // Update main thread prio and affinity to match the threadpool settings
+        ggml_thread_apply_priority(threadpool->prio);
++#if !defined(PS4LM) // PS4LM never pins the calling thread (patches/0002)
+        if (ggml_thread_cpumask_is_valid(threadpool->workers[0].cpumask)) {
+            ggml_thread_apply_affinity(threadpool->workers[0].cpumask);
+        }
++#endif
+ 
+        // resume does cond broadcast
+        ggml_threadpool_resume_locked(threadpool);
+@@ -3375,9 +3424,11 @@ static struct ggml_threadpool * ggml_threadpool_new_impl(
+     if (!threadpool->pause) {
+         // Update main thread prio and affinity at the start, otherwise we'll do it in resume
+         ggml_thread_apply_priority(threadpool->prio);
++#if !defined(PS4LM) // PS4LM never pins the calling thread (patches/0002)
+         if (ggml_thread_cpumask_is_valid(threadpool->workers[0].cpumask)) {
+             ggml_thread_apply_affinity(threadpool->workers[0].cpumask);
+         }
++#endif
+     }
+ #endif // GGML_USE_OPENMP
+ 

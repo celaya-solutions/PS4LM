@@ -1,0 +1,83 @@
+diff --git a/common/common.cpp b/common/common.cpp
+index c5db22832..4dd21596b 100644
+--- a/common/common.cpp
++++ b/common/common.cpp
+@@ -199,11 +199,29 @@ static int cpu_count_math_cpus(int n_cpu) {
+ 
+ #endif // __x86_64__ && __linux__
+ 
++#if defined(PS4LM)
++#include <sys/param.h>
++#include <sys/cpuset.h>
++#endif
++
+ /**
+  * Returns number of CPUs on system that are useful for math.
+  */
+ int32_t common_cpu_get_num_math() {
+-#if defined(__x86_64__) && defined(__linux__) && !defined(__ANDROID__)
++#if defined(PS4LM)
++    // A PS4 payload may run on only a few of the console's CPUs (its affinity
++    // mask), and using all of them can shut the console down. Default to the
++    // allowed CPUs minus 2, at least 1; -t still overrides (patches/0001).
++    cpuset_t mask;
++    CPU_ZERO(&mask);
++    int allowed = 0;
++    if (cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(mask), &mask) == 0) {
++        for (int i = 0; i < CPU_SETSIZE; i++) {
++            allowed += CPU_ISSET(i, &mask) ? 1 : 0;
++        }
++    }
++    return std::max(1, allowed - 2);
++#elif defined(__x86_64__) && defined(__linux__) && !defined(__ANDROID__)
+     int n_cpu = sysconf(_SC_NPROCESSORS_ONLN);
+     if (n_cpu < 1) {
+         return common_cpu_get_num_physical_cores();
+diff --git a/common/common.h b/common/common.h
+index b6683fe67..a0690644c 100644
+--- a/common/common.h
++++ b/common/common.h
+@@ -74,7 +74,11 @@ struct common_cpu_params {
+     bool     mask_valid                  = false;   // Default: any CPU
+     enum ggml_sched_priority  priority   = GGML_SCHED_PRIO_NORMAL;  // Scheduling prio : (0 - normal, 1 - medium, 2 - high, 3 - realtime)
+     bool     strict_cpu                  = false;   // Use strict CPU placement
++#if defined(PS4LM)
++    uint32_t poll                        = 0;       // PS4LM: no busy-wait unless asked (patches/0001)
++#else
+     uint32_t poll                        = 50;      // Polling (busywait) level (0 - no polling, 100 - mostly polling)
++#endif
+ };
+ 
+ int32_t common_cpu_get_num_physical_cores();
+diff --git a/ggml/src/ggml.c b/ggml/src/ggml.c
+index ef0134ba0..8d76a79f2 100644
+--- a/ggml/src/ggml.c
++++ b/ggml/src/ggml.c
+@@ -8168,7 +8168,11 @@ void ggml_log_set(ggml_log_callback log_callback, void * user_data) {
+ void ggml_threadpool_params_init(struct ggml_threadpool_params * p, int n_threads) {
+     p->n_threads  = n_threads;
+     p->prio       = 0;     // default priority (usually means normal or inherited)
++#if defined(PS4LM)
++    p->poll       = 0;     // PS4LM: no busy-wait unless asked (patches/0001)
++#else
+     p->poll       = 50;    // hybrid-polling enabled
++#endif
+     p->strict_cpu = false; // no strict placement (all threads share same cpumask)
+     p->paused     = false; // threads are ready to go
+     memset(p->cpumask, 0, GGML_MAX_N_THREADS); // all-zero means use the default affinity (usually inherited)
+diff --git a/tools/llama-bench/llama-bench.cpp b/tools/llama-bench/llama-bench.cpp
+index 96ae4870f..2a33f1c81 100644
+--- a/tools/llama-bench/llama-bench.cpp
++++ b/tools/llama-bench/llama-bench.cpp
+@@ -395,7 +395,11 @@ static const cmd_params cmd_params_defaults = {
+     /* n_threads            */ { common_cpu_get_num_math() },
+     /* cpu_mask             */ { "0x0" },
+     /* cpu_strict           */ { false },
++#if defined(PS4LM)
++    /* poll                 */ { 0 },
++#else
+     /* poll                 */ { 50 },
++#endif
+     /* n_gpu_layers         */ { -1 },
+     /* n_cpu_moe            */ { 0 },
+     /* split_mode           */ { LLAMA_SPLIT_MODE_LAYER },
