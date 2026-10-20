@@ -7,7 +7,12 @@
  *   - /data/PS4LM/logs/<tool>-<unix-time>.log, always.
  * The listener's address comes from /data/PS4LM/loghost.txt ("host:port",
  * written by scripts/run.sh), else from PS4LM_LOG_HOST and PS4LM_LOG_PORT at
- * build time. If the socket fails, the file still gets everything.
+ * build time. If the socket fails, the file still gets everything. Both
+ * sockets are set SO_NOSIGPIPE: a write after the Mac or elfldr hangs up would
+ * otherwise raise SIGPIPE and kill the tool (docs/PORTING.md).
+ *
+ * The tool's pid goes in /data/PS4LM/run/<tool>.pid, for probes/stop: every
+ * payload is named "Payload" in the process list, so a name cannot pick one.
  *
  * Link it into a tool and it starts by itself. ps4lm_log_finish() drains the
  * pipe; it runs as a destructor, and tools that leave through _Exit call it
@@ -39,6 +44,7 @@
 #endif
 
 #define LOG_DIR       "/data/PS4LM/logs"
+#define RUN_DIR       "/data/PS4LM/run"
 #define LOGHOST_FILE  "/data/PS4LM/loghost.txt"
 #define CONNECT_MS    1000
 
@@ -84,6 +90,23 @@ static void *pump(void *arg) {
             write_all(g_file, buf, (size_t)n);
     }
     return NULL;
+}
+
+static void no_sigpipe(int fd) {
+    const int on = 1;
+    if (fd >= 0)
+        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+}
+
+static void write_pid(const char *tool) {
+    char path[256];
+    mkdir(RUN_DIR, 0777);
+    snprintf(path, sizeof(path), RUN_DIR "/%s.pid", tool);
+    FILE *f = fopen(path, "w");
+    if (f) {
+        fprintf(f, "%d\n", (int)getpid());
+        fclose(f);
+    }
 }
 
 /* A non-blocking connect with a timeout, so a Mac that is not listening (or not
@@ -162,6 +185,8 @@ __attribute__((constructor(101))) static void ps4lm_log_start(int argc, char **a
     int port;
     log_target(host, sizeof(host), &port);
     g_sock = connect_timeout(host, port);
+    no_sigpipe(g_sock);
+    write_pid(tool);
 
     int fds[2];
     if (pipe(fds) != 0)
@@ -169,6 +194,7 @@ __attribute__((constructor(101))) static void ps4lm_log_start(int argc, char **a
     fflush(stdout);
     fflush(stderr);
     g_orig = dup(STDOUT_FILENO);
+    no_sigpipe(g_orig);
     g_pipe_rd = fds[0];
     dup2(fds[1], STDOUT_FILENO);
     dup2(fds[1], STDERR_FILENO);
