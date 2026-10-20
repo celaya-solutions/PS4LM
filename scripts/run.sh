@@ -24,8 +24,8 @@ remote_dir=/data/PS4LM/bin
 if [ -d "$root/probes/$tool" ]; then
     make -s -C "$root/probes/$tool"
     elf="$root/build/probes/$tool.elf"
-elif [ -f "$root/build/llama-ps4/bin/$tool" ]; then
-    elf="$root/build/llama-ps4/bin/$tool"
+elif [ -f "$root/build/llama-ps4/bin/$tool.elf" ]; then
+    elf="$root/build/llama-ps4/bin/$tool.elf"
 else
     elf="$tool"
 fi
