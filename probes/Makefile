@@ -1,5 +1,5 @@
 # Builds every probe into build/probes. Source scripts/env.sh first.
-PROBES := hello memprobe libcprobe
+PROBES := hello memprobe libcprobe cpuprobe
 
 all clean:
 	for p in $(PROBES); do $(MAKE) -C $$p $@ || exit 1; done
