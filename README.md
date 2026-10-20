@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.2.0
+Version:     v1.3.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-20
-SHA256:      fd89929478302f62c206ac3365fd4c5296f045085c71f57b7d3232e7e6f741a3
+SHA256:      ceea03b52e9e545038674d0da442945dac0ac4bd2dedb4a6e5550cc2fb77f7f0
 Chain:       solana-mainnet
-Tx:          5jRar5KgjtwkhAgnQLFrMyztjvAtPkQUSAWo9XRYMMZh4Mu8TBrRpyv3YLXS6A1G7CnGFe3jF9W3xajifR8KAcn1
+Tx:          4LZvcdyhRiHq55hChEcosN4UB59Drrs7dDURaeVn8yXvQkoa3SepnPpaqWqDc2Meei7THyVKEaqX4vzrKdrECiEo
 License:     GPL-3.0-or-later
 ```
 
@@ -59,6 +59,16 @@ On the console, run the tools with `-t 2 --prio -1` and without mmap
 
 Settings live in `scripts/env.sh`. `PS4_LOADER_PORT` is the enabler's payload
 port: 9090 for GoldHEN (the default), 9020 for HEN VTX.
+
+## Agent access (MCP)
+
+`scripts/ps4_mcp.py` is an MCP server that gives an AI agent the same reach:
+console status, `console-setup.sh`, FTP list/read/upload, `run.sh` (long runs
+become jobs to poll or stop), the kernel log on 3232 and the Mac log listener.
+It needs [uv](https://docs.astral.sh/uv/); `.mcp.json` registers it for Claude
+Code in this folder. Other clients: `uv run --script scripts/ps4_mcp.py` over
+stdio. It never touches the loader port, which GoldHEN closes after one
+connection.
 
 ## Docs
 

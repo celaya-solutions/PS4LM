@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ps4": {
+      "command": "uv",
+      "args": ["run", "--script", "scripts/ps4_mcp.py"]
+    }
+  }
+}
