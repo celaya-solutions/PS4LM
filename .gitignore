@@ -1,0 +1,9 @@
+/build/
+/logs/
+/.deps/
+/scripts/env.local.sh
+*.gguf
+*.elf
+*.o
+*.a
+.DS_Store
