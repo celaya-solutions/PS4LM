@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.7.2
+Version:     v1.7.3
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      9bef97b61b4f44569d44b2259277e0f70ccaa8aae39d9e7e6fd65ca930666629
+SHA256:      cf55221e2214f686ea5199291c82edc82b500712e2857d6ba64465d6f8a41bde
 Chain:       solana-mainnet
-Tx:          bm1cmut2mvvecMTu8pKBviNfqvn5hDiCNVLXV74Q4L9u9y1Brs1SrbUsXo15FS1SMX1dK6xChj8rKK2LR4nXTx4
+Tx:          59LWEQZSDhxSZAb36iCeZ9Y8zwtvd9hruuHbZJt654G7ikZYPxa5yueoAYaKSCSiznAPx9AHfbeGkB3uuBGCU8hs
 License:     GPL-3.0-or-later
 ```
 
@@ -70,8 +70,8 @@ every chat; a client's own system message is kept after it, in the same
 message. It is about 195 tokens, so a slot's first reply waits ~25 s longer
 on the console; later turns reuse the cached prompt. Without it the model
 introduces itself as Qwen, its own name. `scripts/serve.sh` uploads the prompt
-and passes `-sysf` for you, and writes it into `server.conf`, so the
-home-screen app starts the server with it too.
+and passes `-sysf` (and `-np 1`) for you, and writes them into `server.conf`,
+so the home-screen app starts the server with them too.
 
 ```sh
 curl --ftp-create-dirs -T prompts/ps4lm-system.txt ftp://$PS4_HOST:2121/data/PS4LM/prompts/

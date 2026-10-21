@@ -30,8 +30,9 @@ if [ "$ctx" -lt 256 ] || [ "$ctx" -gt 32768 ]; then
 fi
 prompt=/data/PS4LM/prompts/ps4lm-system.txt
 # The system prompt goes first in extra, so the app's X button (it reads server.conf) uses it too.
-# A -sysf the caller passes comes later and wins.
-extra=(-sysf "$prompt" "$@")
+# -np 1 gives the one chat the whole context (the prompt alone is ~195 tokens). Anything the caller
+# passes (a -sysf, a -np) comes later and wins.
+extra=(-sysf "$prompt" -np 1 "$@")
 threads=2
 port=8080
 
