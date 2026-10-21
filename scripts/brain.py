@@ -57,12 +57,16 @@ def split_chat(messages: list[dict]) -> tuple[str, str]:
 async def _claude(system: str, prompt: str, model: str | None) -> str:
     opts = ClaudeAgentOptions(tools=[], system_prompt=system, max_turns=1,
                               setting_sources=[], model=model)
+    result = None
+    # Read to the end: leaving the SDK's generator early fails its cleanup ("aclose(): ... already running").
     async for msg in query(prompt=prompt, options=opts):
         if isinstance(msg, ResultMessage):
-            if msg.is_error:
-                raise RuntimeError(msg.result or msg.subtype)
-            return msg.result or ""
-    raise RuntimeError("Claude gave no result")
+            result = msg
+    if result is None:
+        raise RuntimeError("Claude gave no result")
+    if result.is_error:
+        raise RuntimeError(result.result or result.subtype)
+    return result.result or ""
 
 
 def ask_claude(system: str, prompt: str, model: str | None) -> str:
