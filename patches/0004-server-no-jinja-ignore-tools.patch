@@ -1,0 +1,33 @@
+diff --git a/tools/server/server-common.cpp b/tools/server/server-common.cpp
+index 351eccf70..20d5cbdf9 100644
+--- a/tools/server/server-common.cpp
++++ b/tools/server/server-common.cpp
+@@ -1282,11 +1282,23 @@ json oaicompat_chat_params_parse(
+     auto tool_choice = json_value(body, "tool_choice", std::string("auto"));
+ 
+     if (!opt.use_jinja) {
+-        if (has_tools) {
+-            throw std::runtime_error("tools param requires --jinja flag");
+-        }
+-        if (tool_choice != "auto") {
+-            throw std::runtime_error("tool_choice param requires --jinja flag");
++        // PS4LM (patches/0004): the console runs --no-jinja while the jinja start
++        // crash is open, and the web UI always sends its browser tools. Without
++        // jinja the template cannot show tools, so drop them instead of failing.
++        if (has_tools || tool_choice != "auto") {
++            static bool warned = false;
++            if (!warned) {
++                SRV_WRN("%s", "PS4LM: tools need --jinja, ignoring them\n");
++                warned = true;
++            }
++            tools       = json();
++            has_tools   = false;
++            tool_choice = "auto";
++            for (const char * key : { "tools", "tool_choice" }) {
++                if (body.contains(key)) {
++                    body.erase(key);
++                }
++            }
+         }
+     }
+ 
