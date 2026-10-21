@@ -45,6 +45,7 @@ int screen_init(void) {
     scene = new Scene2D(1920, 1080, 4);
     if (!scene->Init(0xC000000, 2))
         return -1;
+    scene->SetActiveFrameBuffer(0); /* the sample never sets it: a garbage index faults on the first draw */
     return face_for(40) ? 0 : -1;
 }
 
