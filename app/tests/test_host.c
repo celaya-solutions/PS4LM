@@ -6,8 +6,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../src/conf.h"
+#include "../src/net.h"
 
 static char vectors[16][2048];
 static int nvectors;
@@ -103,14 +111,131 @@ static void test_chat_url_no_ip(void) {
     assert(strcmp(out, "http://192.168.50.2:8080") == 0);
 }
 
+static int http_port, close_port;
+static pid_t fixture_pid;
+
+static void start_fixture(const char *script) {
+    char dir[] = "/tmp/ps4lm-test-XXXXXX", ports[64];
+    assert(mkdtemp(dir));
+    snprintf(ports, sizeof ports, "%s/ports", dir);
+    fixture_pid = fork();
+    if (fixture_pid == 0) {
+        execlp("python3", "python3", "-I", script, ports, (char *)NULL);
+        _exit(127);
+    }
+    for (int i = 0; i < 100; i++) {
+        FILE *f = fopen(ports, "r");
+        if (f) {
+            assert(fscanf(f, "%d %d", &http_port, &close_port) == 2);
+            fclose(f);
+            unlink(ports);
+            rmdir(dir);
+            return;
+        }
+        usleep(50000);
+    }
+    assert(!"fixture did not start");
+}
+
+static long now_ms(void) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000L + tv.tv_usec / 1000;
+}
+
+/* A port nothing listens on: bind one, read its number, close it. */
+static int closed_port(void) {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in a = {0};
+    socklen_t len = sizeof a;
+    a.sin_family = AF_INET;
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    assert(bind(fd, (struct sockaddr *)&a, sizeof a) == 0);
+    assert(getsockname(fd, (struct sockaddr *)&a, &len) == 0);
+    close(fd);
+    return ntohs(a.sin_port);
+}
+
+static void test_port_open(void) {
+    assert(net_port_open("127.0.0.1", http_port, 1000) == 1);
+    long t = now_ms();
+    assert(net_port_open("127.0.0.1", closed_port(), 1000) == 0);
+    assert(now_ms() - t < 1200);
+    t = now_ms();
+    assert(net_port_open("10.255.255.1", 9, 300) == 0); /* no answer: times out */
+    assert(now_ms() - t < 1200);
+    assert(net_port_open("", 80, 100) == 0);
+    assert(net_port_open("not-an-ip", 80, 100) == 0);
+}
+
+static void test_http_get(void) {
+    char body[64];
+    assert(net_http_get("127.0.0.1", http_port, "/health", body, sizeof body, 2000) == 503);
+    assert(net_http_get("127.0.0.1", http_port, "/health", body, sizeof body, 2000) == 200);
+    assert(strcmp(body, "{\"status\":\"ok\"}") == 0);
+    char slots[256];
+    assert(net_http_get("127.0.0.1", http_port, "/slots", slots, sizeof slots, 2000) == 200);
+    assert(slots_busy(slots) == 1);
+    char small[16];
+    assert(net_http_get("127.0.0.1", http_port, "/big", small, sizeof small, 2000) == 200);
+    assert(strlen(small) == 15 && strspn(small, "x") == 15);
+    assert(net_http_get("127.0.0.1", closed_port(), "/health", body, sizeof body, 500) == -1);
+    assert(net_http_get("127.0.0.1", close_port, "/health", body, sizeof body, 500) == -1);
+}
+
+static void test_send_line(void) {
+    int ls = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in a = {0};
+    socklen_t len = sizeof a;
+    a.sin_family = AF_INET;
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    assert(bind(ls, (struct sockaddr *)&a, sizeof a) == 0 && listen(ls, 1) == 0);
+    assert(getsockname(ls, (struct sockaddr *)&a, &len) == 0);
+    const char *line = "file:/data/PS4LM/bin/stop.elf?args=llama-server\n";
+    assert(net_send_line("127.0.0.1", ntohs(a.sin_port), line, 1000) == 0);
+    int c = accept(ls, NULL, NULL);
+    char got[256];
+    ssize_t n, total = 0;
+    while ((n = read(c, got + total, sizeof got - 1 - (size_t)total)) > 0)
+        total += n;
+    got[total] = 0;
+    assert(strcmp(got, line) == 0);
+    close(c);
+    close(ls);
+
+    /* A peer that hangs up while we write must not kill us with SIGPIPE. */
+    size_t big = 4 << 20;
+    char *huge = malloc(big + 1);
+    memset(huge, 'a', big);
+    huge[big] = 0;
+    int rc = net_send_line("127.0.0.1", close_port, huge, 1000);
+    assert(rc == -1 || rc == 0);
+    free(huge);
+    assert(net_send_line("127.0.0.1", closed_port(), "x\n", 500) == -1);
+}
+
+static void test_slots_busy(void) {
+    assert(slots_busy("[{\"id\":0,\"is_processing\":true},{\"id\":1,\"is_processing\":false}]") == 1);
+    assert(slots_busy("[{\"is_processing\": true},{\"is_processing\":true}]") == 2);
+    assert(slots_busy("") == 0);
+    assert(slots_busy(NULL) == 0);
+}
+
 int main(int argc, char **argv) {
     load_vectors(argc > 1 ? argv[1] : "vectors.txt");
+    start_fixture(argc > 2 ? argv[2] : "tests/fixture.py");
     test_conf_defaults_and_parse();
     test_pick_model();
     test_pick_model_missing();
     test_elfldr_line_matches_run_sh();
     test_server_line();
     test_chat_url_no_ip();
+    test_port_open();
+    test_http_get();
+    test_send_line();
+    test_slots_busy();
+    kill(fixture_pid, SIGTERM);
+    waitpid(fixture_pid, NULL, 0);
     puts("test_host: all PASS");
     return 0;
 }
