@@ -20,6 +20,13 @@ shift
 ctx=1024
 if [ $# -gt 0 ] && [ "$1" != "--" ]; then ctx=$1; shift; fi
 [ "${1:-}" = "--" ] && shift
+# Same range as app/src/conf.c, so the app can read the server.conf this writes.
+case $ctx in
+    ''|*[!0-9]*) echo "serve.sh: CTX must be a number, got '$ctx' (put extra args after --)" >&2; exit 2 ;;
+esac
+if [ "$ctx" -lt 256 ] || [ "$ctx" -gt 32768 ]; then
+    echo "serve.sh: CTX must be 256..32768, got $ctx" >&2; exit 2
+fi
 extra=("$@")
 threads=2
 port=8080

@@ -11,6 +11,8 @@ app_state state_next(const app_seen *s) {
         return s->busy > 0 ? ST_BUSY : ST_READY;
     if (s->health == 503)
         return ST_LOADING;
+    if (s->launched_ms_ago >= 0 && s->seen_open && !s->server_open)
+        return ST_FAILED; /* it was up and the port closed: the server died */
     if (s->launched_ms_ago >= 0)
         return s->launched_ms_ago <= LOAD_TIMEOUT_MS ? ST_LOADING : ST_FAILED;
     if (!s->loader_open)

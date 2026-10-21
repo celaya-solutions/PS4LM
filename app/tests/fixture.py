@@ -37,6 +37,17 @@ def closer(s):
         c.close()
 
 
+def watch_parent(ppid):
+    """Exit when the test runner dies (a failed assert), so make does not hang."""
+    import os
+    import time
+    while os.getppid() == ppid:
+        time.sleep(0.2)
+    os._exit(0)
+
+
+import os
+threading.Thread(target=watch_parent, args=(os.getppid(),), daemon=True).start()
 httpd = http.server.HTTPServer(("127.0.0.1", 0), H)
 cs = socket.socket()
 cs.bind(("127.0.0.1", 0))
@@ -44,6 +55,5 @@ cs.listen(8)
 threading.Thread(target=closer, args=(cs,), daemon=True).start()
 with open(sys.argv[1] + ".tmp", "w") as f:
     f.write("%d %d\n" % (httpd.server_address[1], cs.getsockname()[1]))
-import os
 os.rename(sys.argv[1] + ".tmp", sys.argv[1])
 httpd.serve_forever()

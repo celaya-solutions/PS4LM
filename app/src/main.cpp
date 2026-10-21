@@ -71,16 +71,20 @@ static int list_models(char names[][256], const char *ptrs[]) {
     return n;
 }
 
-static void read_conf(ps4lm_conf *c) {
+/* 0, or -1 when server.conf exists but does not parse (c is then the
+ * defaults, and the file must not be written over). */
+static int read_conf(ps4lm_conf *c) {
     char text[2048] = "";
     conf_defaults(c);
     FILE *f = fopen(PS4LM_CONF, "r");
-    if (f) {
-        text[fread(text, 1, sizeof text - 1, f)] = '\0';
-        fclose(f);
-        if (conf_parse(text, c) != 0)
-            conf_defaults(c); /* a broken file means the defaults, not a crash */
-    }
+    if (!f)
+        return 0;
+    text[fread(text, 1, sizeof text - 1, f)] = '\0';
+    fclose(f);
+    if (conf_parse(text, c) == 0)
+        return 0;
+    conf_defaults(c);
+    return -1;
 }
 
 static void write_conf(const ps4lm_conf *c) {
@@ -111,7 +115,7 @@ int main(void) {
     ps4lm_conf conf;
     static char names[MAX_MODELS][256];
     const char *models[MAX_MODELS];
-    int nmodels = 0, sel = -1, prev_buttons = 0;
+    int nmodels = 0, sel = -1, prev_buttons = 0, conf_bad = 0;
     long last_poll = 0, launched_at = -1, quit_at = -1;
     char ip[32] = "", url[64] = "", note[128] = "";
     app_seen seen = {};
@@ -121,7 +125,7 @@ int main(void) {
         long now = now_ms();
         if (now - last_poll >= POLL_MS) {
             last_poll = now;
-            read_conf(&conf);
+            conf_bad = read_conf(&conf) != 0;
             const char *chosen = sel >= 0 && sel < nmodels ? models[sel] : NULL;
             char keep[256] = "";
             if (chosen)
@@ -141,6 +145,7 @@ int main(void) {
                         net_http_get(LOCAL, conf.port, "/slots", slots, sizeof slots, 1000) == 200
                             ? slots_busy(slots) : 0;
             seen.launched_ms_ago = launched_at < 0 ? -1 : (int)(now - launched_at);
+            seen.seen_open = launched_at >= 0 && (seen.seen_open || seen.server_open);
             st = state_next(&seen);
             if (st == ST_READY || st == ST_BUSY)
                 launched_at = -1;
@@ -165,19 +170,26 @@ int main(void) {
         }
         if (quit_at < 0 && idle && sel >= 0 && seen.loader_open && (pressed & ORBIS_PAD_BUTTON_CROSS)) {
             snprintf(conf.model, sizeof conf.model, "%s", models[sel]);
-            write_conf(&conf);
+            if (!conf_bad)
+                write_conf(&conf);
             if (server_line(line, sizeof line, &conf, models[sel]) > 0 &&
                 net_send_line(LOCAL, ELFLDR_PORT, line, 1000) == 0) {
                 launched_at = now;
+                seen.seen_open = 0;
                 st = ST_LOADING;
-                note[0] = '\0';
+                if (conf_bad)
+                    snprintf(note, sizeof note, "server.conf did not read; started with the defaults.");
+                else
+                    note[0] = '\0';
             } else {
                 snprintf(note, sizeof note, "Could not reach the loader on port %d.", ELFLDR_PORT);
             }
         }
         if (quit_at < 0 && (st == ST_LOADING || st == ST_READY || st == ST_BUSY) &&
             (pressed & ORBIS_PAD_BUTTON_CIRCLE)) {
-            launched_at = -1;
+            /* launched_at stays: until the port is seen closing, or the load
+             * timeout passes, X stays off, so a stop that did not work cannot
+             * lead to a second server. */
             if (stop_line(line, sizeof line) > 0 && net_send_line(LOCAL, ELFLDR_PORT, line, 1000) == 0)
                 snprintf(note, sizeof note, "Stopping the server...");
             else

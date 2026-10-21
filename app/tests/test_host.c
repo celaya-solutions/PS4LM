@@ -239,7 +239,7 @@ static void test_slots_busy(void) {
 
 static app_seen seen(void) {
     app_seen s = {.have_ip = 1, .loader_open = 1, .model_index = 0, .server_open = 0,
-                  .health = -1, .busy = 0, .launched_ms_ago = -1};
+                  .health = -1, .busy = 0, .launched_ms_ago = -1, .seen_open = 0};
     return s;
 }
 
@@ -278,6 +278,13 @@ static void test_state_loading(void) {
 static void test_state_load_timeout(void) {
     app_seen s = seen();
     s.launched_ms_ago = 121000;
+    assert(state_next(&s) == ST_FAILED);
+}
+
+static void test_state_load_died(void) {
+    app_seen s = seen();
+    s.launched_ms_ago = 10000;
+    s.seen_open = 1; /* bound 8080, answered 503, then the process died */
     assert(state_next(&s) == ST_FAILED);
 }
 
@@ -323,6 +330,7 @@ int main(int argc, char **argv) {
     test_state_busy();
     test_state_loading();
     test_state_load_timeout();
+    test_state_load_died();
     test_state_no_model();
     test_state_no_ip();
     test_state_text();

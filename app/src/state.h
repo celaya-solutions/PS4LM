@@ -17,6 +17,7 @@ typedef struct {
     int health;          /* HTTP status of /health, or -1 */
     int busy;            /* slots processing a request */
     int launched_ms_ago; /* -1 when this app has not launched a server */
+    int seen_open;       /* the server port was open at some poll since the launch */
 } app_seen;
 
 app_state state_next(const app_seen *s);
