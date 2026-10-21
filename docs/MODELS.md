@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Models
-Version:     v1.3.0
+Version:     v1.3.1
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      2c8430867c39582594e3bd8e6f2a2b06efb51a59271fcfd2d2ae1e6ef3f46f54
+SHA256:      0bd059da16de69d2129b8c9212fc40ec94565c3990a003c9ae3baaeb1f1dbb55
 Chain:       solana-mainnet
-Tx:          mdeeRyoW68SnC7YQNwhnQMUNr9K6tfjGsdjDmyXQqxdMFr5vYYAsUwJndjdvAG7jtddsMdoYuGyB6GPn6XRQgz8
+Tx:          55PoV2MZUFi9qkmDQFKGrJCavGsqYJ1ofuMjAoufWEziLkVSAouTZS1jNF6zG5ahE2914sAdj5vrn6a3HtwXEvd8
 License:     GPL-3.0-or-later
 ```
 
@@ -80,6 +80,18 @@ scripts/run.sh llama-server -m /data/PS4LM/models/gemma-4-E2B-it-Q4_K_M.gguf \
 Mac check (2026-10-21, CPU only, same flags, 2 threads): lazy on 2045 MiB
 RSS, lazy off 3585 MiB. Log: model 348 MiB + 1275 MiB (repacked for ARM),
 PLE 1540 MiB mapped, KV 33 MiB, compute 32 MiB. Phase 0 measured ~3.5 GiB
-for a payload (3.0 GiB on a tired console), so it fits with ~1 GiB to
-spare; expect some of the system to go to swap. Not run on the console yet.
-Speed guess: about 2x the work per token of Qwen3.5 0.8B, so 1 to 2 t/s.
+for a payload (3.0 GiB on a tired console), so on paper it fits with ~1 GiB
+to spare.
+
+**Console (2026-10-21): it does not run.** Two tries with the line above, but
+with jinja and `-rea off` instead of `--no-jinja` (main build with
+0001-0005 and the PORTING 19 fix). The launcher app was open on the TV both
+times. Loading reached `llama threadpool init` (60 to 87 s), then the console
+thrashed. Payload FMEM stayed near 1000 MiB and swap went from 355 to
+1011 MiB. Shell UI missed its heartbeat for up to 16 s. Try 1 exited by
+itself with no error line; try 2 was stopped by hand. The server never
+answered (`/health` 503 "Loading model"). Qwen3.5 0.8B came back right after
+at 4.1 t/s. Next things to try: close the launcher app, and use Q3_K_M
+(1144 MiB in RAM). Earlier, a memprobe run (its 1 GiB mmap read) knocked the
+console off the network until a restart. That points at file-mapped reads,
+which `-lzm on` depends on.
