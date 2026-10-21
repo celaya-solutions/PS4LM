@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.3.0
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      ceea03b52e9e545038674d0da442945dac0ac4bd2dedb4a6e5550cc2fb77f7f0
+Date:        2026-10-21
+SHA256:      5b2c09e1d0002e81afb6c27c9188eb246bf6091c45dee72a1cb7922c11c9be02
 Chain:       solana-mainnet
-Tx:          4LZvcdyhRiHq55hChEcosN4UB59Drrs7dDURaeVn8yXvQkoa3SepnPpaqWqDc2Meei7THyVKEaqX4vzrKdrECiEo
+Tx:          38QrHnpmv1owEFtVeDkSwNYwHqVyMcqwQs2s3MFX6RiY537D8AVWKZsxmQoEomPeSQQ9wS15iYnYXyEoJQdbu2Dn
 License:     GPL-3.0-or-later
 ```
 
@@ -59,6 +59,21 @@ On the console, run the tools with `-t 2 --prio -1` and without mmap
 
 Settings live in `scripts/env.sh`. `PS4_LOADER_PORT` is the enabler's payload
 port: 9090 for GoldHEN (the default), 9020 for HEN VTX.
+
+## System prompt
+
+`prompts/ps4lm-system.txt` tells the model who it is: PS4LM, made by Celaya
+Solutions Research, talking as the console itself. `patches/0003` turns
+`--system-prompt-file` back on for `llama-server` and puts that text first in
+every chat; a client's own system message is kept after it, in the same
+message. It is about 160 tokens, so a slot's first reply waits ~20 s longer
+on the console; later turns reuse the cached prompt.
+
+```sh
+curl --ftp-create-dirs -T prompts/ps4lm-system.txt ftp://$PS4_HOST:2121/data/PS4LM/prompts/
+scripts/run.sh llama-server -m /data/PS4LM/models/model.gguf --host 0.0.0.0 --port 8080 \
+    -t 2 --prio -1 -sysf /data/PS4LM/prompts/ps4lm-system.txt
+```
 
 ## Agent access (MCP)
 
