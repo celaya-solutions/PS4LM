@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.4.0
+Version:     v1.5.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      5b2c09e1d0002e81afb6c27c9188eb246bf6091c45dee72a1cb7922c11c9be02
+SHA256:      fbb593cc9f66e5dd282bd853c41a4cfa1042c4090966f147f037beaeafd83054
 Chain:       solana-mainnet
-Tx:          38QrHnpmv1owEFtVeDkSwNYwHqVyMcqwQs2s3MFX6RiY537D8AVWKZsxmQoEomPeSQQ9wS15iYnYXyEoJQdbu2Dn
+Tx:          NhR4K5Ej4XkeZSG4j2eBB4efstK6gjKFj5igJhYeHgZ5PdwXaaccPvjwa2oNdxQcHntSaZWM6DAJX9DmuMTQqxZ
 License:     GPL-3.0-or-later
 ```
 
@@ -84,6 +84,31 @@ It needs [uv](https://docs.astral.sh/uv/); `.mcp.json` registers it for Claude
 Code in this folder. Other clients: `uv run --script scripts/ps4_mcp.py` over
 stdio. It never touches the loader port, which GoldHEN closes after one
 connection.
+
+`AGENTS.md` holds the rules for coding agents (Codex reads it; `CLAUDE.md`
+points Claude Code to it). Codex gets the same MCP server from
+`.codex/config.toml` once you trust this folder in Codex.
+
+## Bigger brain (Claude or Codex)
+
+When the console's model is too small, `scripts/brain.py` answers instead. It
+is an OpenAI-style chat endpoint on the Mac, so any OpenAI-compatible chat app
+can use it next to the PS4's own server. Sign-in comes from the tools you
+already use, with no API keys: Claude through the Claude Agent SDK (your
+`claude` login; an `ANTHROPIC_API_KEY` in the environment wins over it) and
+Codex through `codex exec` (your `codex login`). Neither gets tools.
+
+```sh
+uv run --script scripts/brain.py              # http://127.0.0.1:8090/v1
+curl -s localhost:8090/v1/chat/completions \
+  -d '{"model":"claude","messages":[{"role":"user","content":"Hi!"}]}'
+BRAIN_TOKEN=secret uv run --script scripts/brain.py --host 0.0.0.0   # your network
+```
+
+Models are `claude` and `codex`, or `claude:<model>` / `codex:<model>`. It
+speaks as PS4LM (`prompts/brain-system.txt`). It refuses to listen beyond the
+Mac without `BRAIN_TOKEN`, because every reply uses your Claude or Codex plan.
+Streaming sends the whole reply as one chunk.
 
 ## Docs
 
