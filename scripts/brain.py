@@ -8,8 +8,9 @@ Claude or Codex, for when the model on the PS4 is too small.
 
 Sign-in comes from the CLIs you already use, not API keys: Claude through the
 Claude Agent SDK (your `claude` login), Codex through `codex exec` (your
-`codex login`). Neither gets tools: Claude has none, Codex runs read-only in an
-empty folder.
+`codex login`). Both are chat only: Claude gets no tools and no connectors, and
+Codex runs read-only in an empty folder with its tools turned off. With
+BRAIN_TOKEN set, 10 wrong tokens pause the brain until it is restarted.
 
     uv run --script scripts/brain.py                         # 127.0.0.1:8090
     BRAIN_TOKEN=secret uv run --script scripts/brain.py --host 0.0.0.0
@@ -20,10 +21,12 @@ system message goes after it.
 """
 import argparse
 import asyncio
+import hmac
 import json
 import os
 import subprocess
 import tempfile
+import threading
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -35,6 +38,17 @@ ROOT = Path(__file__).resolve().parent.parent
 SYSTEM = (ROOT / "prompts" / "brain-system.txt").read_text().strip()
 TOKEN = os.environ.get("BRAIN_TOKEN", "")
 MODELS = ["claude", "codex"]
+MAX_BAD_TOKENS = 10  # then every token is refused until a restart, so a short token is still safe
+_bad_tokens = 0
+_bad_lock = threading.Lock()
+# shortcut: Codex has no "no tools" switch, so this turns off each tool that reaches this Mac, the web or
+# your accounts (Codex 0.153). Sub-agents, apply_patch and a code runner stay but have no shell. After a
+# Codex update, ask it about a file outside its folder and expect a no.
+CODEX_NO_TOOLS = ["-c", "web_search=disabled"] + [
+    arg for f in ("shell_tool", "unified_exec", "apps", "view_image", "browser_use", "browser_use_external",
+                  "browser_use_full_cdp_access", "in_app_browser", "computer_use", "memories", "plugins",
+                  "remote_plugin", "skill_mcp_dependency_install", "image_generation")
+    for arg in ("--disable", f)]
 
 
 def _text(content) -> str:
@@ -54,9 +68,15 @@ def split_chat(messages: list[dict]) -> tuple[str, str]:
     return system, "The chat so far:\n\n" + "\n\n".join(lines) + "\n\nReply to the last user message."
 
 
+def claude_options(system: str, model: str | None) -> ClaudeAgentOptions:
+    # tools=[] drops the built-in tools only; the login also attaches your claude.ai connectors
+    # (Notion, Railway, Supabase, ...), and strict-mcp-config leaves them out. test_brain.py --live checks this.
+    return ClaudeAgentOptions(tools=[], system_prompt=system, max_turns=1, setting_sources=[],
+                              model=model, extra_args={"strict-mcp-config": None})
+
+
 async def _claude(system: str, prompt: str, model: str | None) -> str:
-    opts = ClaudeAgentOptions(tools=[], system_prompt=system, max_turns=1,
-                              setting_sources=[], model=model)
+    opts = claude_options(system, model)
     result = None
     # Read to the end: leaving the SDK's generator early fails its cleanup ("aclose(): ... already running").
     async for msg in query(prompt=prompt, options=opts):
@@ -78,7 +98,7 @@ def ask_codex(system: str, prompt: str, model: str | None) -> str:
         out = Path(tmp) / "last.txt"
         # json.dumps of a str is a valid TOML basic string.
         cmd = ["codex", "exec", "--ephemeral", "--skip-git-repo-check", "--ignore-user-config",
-               "--ignore-rules", "-s", "read-only", "-C", tmp, "-o", str(out),
+               "--ignore-rules", *CODEX_NO_TOOLS, "-s", "read-only", "-C", tmp, "-o", str(out),
                "-c", f"developer_instructions={json.dumps(system)}"]
         if model:
             cmd += ["-m", model]
@@ -106,9 +126,21 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _authed(self) -> bool:
-        if not TOKEN or self.headers.get("Authorization", "") == f"Bearer {TOKEN}":
-            return True
-        self._send(401, {"error": {"message": "bad or missing bearer token"}})
+        global _bad_tokens
+        got = self.headers.get("Authorization", "")
+        with _bad_lock:
+            locked = _bad_tokens >= MAX_BAD_TOKENS
+            if not TOKEN or (not locked and hmac.compare_digest(got.encode(), f"Bearer {TOKEN}".encode())):
+                return True
+            if got and not locked:  # a missing header guesses nothing, so it does not count
+                _bad_tokens += 1
+                locked = _bad_tokens >= MAX_BAD_TOKENS
+                if locked:
+                    print(f"brain: {MAX_BAD_TOKENS} wrong tokens, refusing all until a restart", flush=True)
+        if locked:
+            self._send(429, {"error": {"message": "too many wrong tokens; restart the brain"}})
+        else:
+            self._send(401, {"error": {"message": "bad or missing bearer token"}})
         return False
 
     def do_GET(self):
