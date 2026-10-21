@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Home-Screen App
-Version:     v1.2.0
+Version:     v1.3.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      ea50329f3d94318ba089b8a7f128c8e15477dc31920044b57f51709f2347b818
+SHA256:      171b37e03beea67a8f387c87a3565d585a4b82537b8d6dec10080016dbea8e92
 Chain:       solana-mainnet
-Tx:          3b9827eoVgh2VxtmLKRKDe5VcuNP8wNk58Kn9KHBoHTN5nx9Bsf9WRwYfLqPVZ1WFWpWyCEzCKFs5dFsUU2rm1hn
+Tx:          2rQnJ5NFVtYecNaL6aZ2KFQDLBhqvExLYD3QhN9EVyjMzk6p7whKjbGNiMBZ7m7MFXmkqw4KD9GTXuHNtAmdvtck
 License:     GPL-3.0-or-later
 ```
 
@@ -16,9 +16,10 @@ PS4LM can sit on the PS4 home screen as an app with its own icon. Open it, pick
 a model, press X, and the TV shows the chat address and a QR code. Scan the
 code with a phone on the same network to chat.
 
-**Status (2026-10-21):** the app itself has not run on the console yet (it
-needs the owner to install it from USB). Everything it drives was checked on
-the console on 2026-10-21, with `--no-jinja` (see below):
+**Status (2026-10-21):** installed and working on the console. Walked
+through on the TV: Stopped with the model list, X to Loading to Ready with the
+address and QR code, Busy while a chat ran, O to stop. The server's own
+checks, also on the console, with `--no-jinja` (see below):
 
 - `scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf 1024 -- --no-jinja` started the
   server and printed the chat address in 13 s. The server kept running after
@@ -104,6 +105,11 @@ memory, ports 9021 and 8080, the console IP, and whether it can read and write
 
 1. Done 2026-10-21: the probe app reaches 127.0.0.1:9021 and reads and writes
    `/data/PS4LM` (facts in [Console](CONSOLE.md#app-process)).
-2. Launcher: walk every state above, scan the QR code, start and stop.
+2. Done 2026-10-21: launcher walk-through (see Status).
 3. Icon and background on the home screen.
+5. The app lets you pick a model too big for the console (Gemma 4 E2B froze it
+   with swap near 900 MB). It needs a size warning or Gemma's own flags.
+6. `stop.elf` now sends SIGKILL 10 s after SIGTERM: llama-server once hung in
+   its exit path ("cleaning up before exit...") holding its memory. The
+   SIGKILL branch has not fired on the console yet.
 4. The jinja crash above, after a console restart: does a restart clear it?

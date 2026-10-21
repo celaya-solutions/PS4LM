@@ -146,7 +146,10 @@ int main(void) {
                             ? slots_busy(slots) : 0;
             seen.launched_ms_ago = launched_at < 0 ? -1 : (int)(now - launched_at);
             seen.seen_open = launched_at >= 0 && (seen.seen_open || seen.server_open);
+            app_state was = st;
             st = state_next(&seen);
+            if (st != was)
+                note[0] = '\0'; /* a note belongs to the state it was written in */
             if (st == ST_READY || st == ST_BUSY)
                 launched_at = -1;
             if (chat_url(url, sizeof url, seen.have_ip ? ip : "", conf.port) < 0)

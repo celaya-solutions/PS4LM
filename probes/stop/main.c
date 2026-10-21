@@ -5,7 +5,8 @@
  * /data/PS4LM/run/<tool>.pid and sends that process SIGTERM, so a long-running
  * tool such as llama-server shuts down cleanly. Every payload is named
  * "Payload" in the process list, so the pid file picks the tool; the process
- * must still be a Payload, or nothing is sent.
+ * must still be a Payload, or nothing is sent. A tool still running 10 s after
+ * SIGTERM gets SIGKILL.
  *
  *   scripts/run.sh stop
  *   scripts/run.sh stop llama-server
@@ -24,6 +25,7 @@
 #include <unistd.h>
 
 #define RUN_DIR "/data/PS4LM/run"
+#define STOP_WAIT_MS 10000 /* after SIGTERM, before SIGKILL */
 
 /* The name of process pid, or NULL if it is gone. With list set, prints every
  * process instead. */
@@ -98,6 +100,22 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     printf("stop: sent SIGTERM to %s, pid %d\n", tool, pid);
+
+    /* llama-server can hang in its exit path after closing its port (seen
+     * 2026-10-21, "cleaning up before exit..."), still holding its memory. */
+    for (int i = 0; i < STOP_WAIT_MS / 100; i++) {
+        usleep(100 * 1000);
+        if (!proc_name(pid, 0)) {
+            printf("stop: %s exited\n", tool);
+            unlink(path);
+            return 0;
+        }
+    }
+    if (kill(pid, SIGKILL) != 0) {
+        printf("stop: SIGKILL %d failed (errno %d)\n", pid, errno);
+        return 1;
+    }
+    printf("stop: %s still running after %d ms, sent SIGKILL\n", tool, STOP_WAIT_MS);
     unlink(path);
     return 0;
 }
