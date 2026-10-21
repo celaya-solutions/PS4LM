@@ -1,7 +1,7 @@
 # PS4LM app. `make test` runs the plain-C tests on the Mac.
 ROOT     := $(abspath ..)
 HOSTOUT  := $(ROOT)/build/app-host
-HOST_SRC := src/conf.c src/net.c
+HOST_SRC := src/conf.c src/net.c src/state.c
 
 test: $(HOSTOUT)/test_host
 	tests/vectors.sh > $(HOSTOUT)/vectors.txt

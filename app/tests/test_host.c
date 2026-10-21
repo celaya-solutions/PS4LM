@@ -16,6 +16,7 @@
 
 #include "../src/conf.h"
 #include "../src/net.h"
+#include "../src/state.h"
 
 static char vectors[16][2048];
 static int nvectors;
@@ -221,6 +222,73 @@ static void test_slots_busy(void) {
     assert(slots_busy(NULL) == 0);
 }
 
+static app_seen seen(void) {
+    app_seen s = {.have_ip = 1, .loader_open = 1, .model_index = 0, .server_open = 0,
+                  .health = -1, .busy = 0, .launched_ms_ago = -1};
+    return s;
+}
+
+static void test_state_no_loader(void) {
+    app_seen s = seen();
+    s.loader_open = 0;
+    assert(state_next(&s) == ST_NO_LOADER);
+}
+
+static void test_state_server_already_up(void) {
+    app_seen s = seen();
+    s.loader_open = 0;
+    s.server_open = 1;
+    s.health = 200;
+    assert(state_next(&s) == ST_READY);
+}
+
+static void test_state_busy(void) {
+    app_seen s = seen();
+    s.server_open = 1;
+    s.health = 200;
+    s.busy = 2;
+    assert(state_next(&s) == ST_BUSY);
+}
+
+static void test_state_loading(void) {
+    app_seen s = seen();
+    s.server_open = 1;
+    s.health = 503;
+    assert(state_next(&s) == ST_LOADING);
+    s = seen();
+    s.launched_ms_ago = 5000;
+    assert(state_next(&s) == ST_LOADING);
+}
+
+static void test_state_load_timeout(void) {
+    app_seen s = seen();
+    s.launched_ms_ago = 121000;
+    assert(state_next(&s) == ST_FAILED);
+}
+
+static void test_state_no_model(void) {
+    app_seen s = seen();
+    s.model_index = -1;
+    assert(state_next(&s) == ST_NO_MODEL);
+    s = seen();
+    assert(state_next(&s) == ST_STOPPED);
+}
+
+static void test_state_no_ip(void) {
+    app_seen s = seen();
+    s.have_ip = 0;
+    s.server_open = 1;
+    s.health = 200;
+    assert(state_next(&s) == ST_NO_NETWORK);
+}
+
+static void test_state_text(void) {
+    assert(strcmp(state_text(ST_STOPPED), "Ready to start. Press X.") == 0);
+    assert(strcmp(state_text(ST_FAILED), "Server stopped. See /data/PS4LM/logs.") == 0);
+    for (int st = ST_NO_NETWORK; st <= ST_FAILED; st++)
+        assert(state_text((app_state)st)[0]);
+}
+
 int main(int argc, char **argv) {
     load_vectors(argc > 1 ? argv[1] : "vectors.txt");
     start_fixture(argc > 2 ? argv[2] : "tests/fixture.py");
@@ -234,6 +302,14 @@ int main(int argc, char **argv) {
     test_http_get();
     test_send_line();
     test_slots_busy();
+    test_state_no_loader();
+    test_state_server_already_up();
+    test_state_busy();
+    test_state_loading();
+    test_state_load_timeout();
+    test_state_no_model();
+    test_state_no_ip();
+    test_state_text();
     kill(fixture_pid, SIGTERM);
     waitpid(fixture_pid, NULL, 0);
     puts("test_host: all PASS");
