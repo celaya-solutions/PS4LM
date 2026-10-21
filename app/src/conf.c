@@ -63,6 +63,13 @@ int conf_parse(const char *text, ps4lm_conf *c) {
     return 0;
 }
 
+/* server.conf text that conf_parse reads back to the same values. */
+int conf_format(char *out, size_t cap, const ps4lm_conf *c) {
+    int n = snprintf(out, cap, "model=%s\nctx=%d\nthreads=%d\nport=%d\nextra=%s\n", c->model, c->ctx,
+                     c->threads, c->port, c->extra);
+    return n < 0 || (size_t)n >= cap ? -1 : n;
+}
+
 static int is_model_file(const char *name) {
     size_t n = strlen(name);
     return n > 5 && strcmp(name + n - 5, ".gguf") == 0 && name[0] != '.' &&

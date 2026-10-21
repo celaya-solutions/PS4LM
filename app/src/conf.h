@@ -24,6 +24,7 @@ typedef struct {
 
 void conf_defaults(ps4lm_conf *c);
 int conf_parse(const char *text, ps4lm_conf *c);
+int conf_format(char *out, size_t cap, const ps4lm_conf *c);
 int conf_pick_model(const ps4lm_conf *c, const char *const *files, int n);
 int elfldr_line(char *out, size_t cap, const char *elf, const char *const *argv, int argc);
 int server_line(char *out, size_t cap, const ps4lm_conf *c, const char *model_file);

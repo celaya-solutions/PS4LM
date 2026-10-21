@@ -49,6 +49,20 @@ static void test_conf_defaults_and_parse(void) {
     assert(strcmp(c.extra, "--no-jinja -n 64") == 0 && c.port == 9000);
 }
 
+static void test_conf_format_round_trip(void) {
+    ps4lm_conf c, back;
+    conf_defaults(&c);
+    strcpy(c.model, "a.gguf");
+    c.ctx = 2048;
+    strcpy(c.extra, "--no-jinja");
+    char text[1024];
+    assert(conf_format(text, sizeof text, &c) > 0);
+    conf_defaults(&back);
+    assert(conf_parse(text, &back) == 0);
+    assert(memcmp(&c, &back, sizeof c) == 0);
+    assert(conf_format(text, 8, &c) == -1);
+}
+
 static void test_pick_model(void) {
     const char *files[] = {"mmproj-F16.gguf", "b.gguf", "a.gguf"};
     ps4lm_conf c;
@@ -174,6 +188,7 @@ static void test_http_get(void) {
     assert(net_http_get("127.0.0.1", http_port, "/health", body, sizeof body, 2000) == 503);
     assert(net_http_get("127.0.0.1", http_port, "/health", body, sizeof body, 2000) == 200);
     assert(strcmp(body, "{\"status\":\"ok\"}") == 0);
+    assert(net_http_get("127.0.0.1", http_port, "/health", NULL, 0, 2000) == 200); /* status only */
     char slots[256];
     assert(net_http_get("127.0.0.1", http_port, "/slots", slots, sizeof slots, 2000) == 200);
     assert(slots_busy(slots) == 1);
@@ -293,6 +308,7 @@ int main(int argc, char **argv) {
     load_vectors(argc > 1 ? argv[1] : "vectors.txt");
     start_fixture(argc > 2 ? argv[2] : "tests/fixture.py");
     test_conf_defaults_and_parse();
+    test_conf_format_round_trip();
     test_pick_model();
     test_pick_model_missing();
     test_elfldr_line_matches_run_sh();

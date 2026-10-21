@@ -25,16 +25,17 @@ LIBS     := -lc -lkernel -lc++ -lSceVideoOut -lSceSysmodule -lSceFreeType -lSceP
             -lSceUserService -lSceNetCtl
 FLAGS    := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -O2 -Wall \
             -isysroot $(OO) -isystem $(OO)/include -DGRAPHICS_USES_FONT \
-            -I$(SAMPLES)/_common -I$(SAMPLES)/input/input -Isrc
+            -I$(SAMPLES)/_common -I$(SAMPLES)/input/input -Isrc -Ithird_party/qrcodegen
 CFLAGS   := $(FLAGS) -std=gnu11
 CXXFLAGS := $(FLAGS) -isystem $(OO)/include/c++/v1 -std=gnu++17
 LDFLAGS  := -m elf_x86_64 -pie --script $(OO)/link.x --eh-frame-hdr -L$(OO)/lib $(LIBS) $(OO)/lib/crt1.o
 
 MAIN     := $(if $(PROBE),src/probe.cpp,src/main.cpp)
-C_SRC    := $(HOST_SRC)
-CXX_SRC  := $(MAIN) $(SAMPLES)/_common/graphics.cpp $(SAMPLES)/input/input/controller.cpp
+C_SRC    = $(HOST_SRC) $(C_EXTRA)
+CXX_SRC  := $(MAIN) $(SAMPLES)/_common/graphics.cpp $(if $(PROBE),$(SAMPLES)/input/input/controller.cpp,src/screen.cpp)
+C_EXTRA  := $(if $(PROBE),,third_party/qrcodegen/qrcodegen.c)
 OBJS     := $(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(C_SRC))) $(patsubst %.cpp,$(OBJDIR)/%.o,$(notdir $(CXX_SRC)))
-vpath %.c src
+vpath %.c src third_party/qrcodegen
 vpath %.cpp src $(SAMPLES)/_common $(SAMPLES)/input/input
 
 all: $(OUT)/$(TITLE_ID).pkg
