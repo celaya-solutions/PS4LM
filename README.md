@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.3.0
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      ceea03b52e9e545038674d0da442945dac0ac4bd2dedb4a6e5550cc2fb77f7f0
+Date:        2026-10-21
+SHA256:      e7b2c75ab738da81f55453851fb5a6cf7afa6ceac09bf4c17bc5cc3ca9fbacb5
 Chain:       solana-mainnet
-Tx:          4LZvcdyhRiHq55hChEcosN4UB59Drrs7dDURaeVn8yXvQkoa3SepnPpaqWqDc2Meei7THyVKEaqX4vzrKdrECiEo
+Tx:          54FAqzxrgE6rhR5LjW3rHcQ9QRrp9QPqMPBXm5oMtXNLhxmto6XpzrLaTxqoKueZn9oFxK2MWsKEHFVW1HjDFSiD
 License:     GPL-3.0-or-later
 ```
 
@@ -70,11 +70,18 @@ Code in this folder. Other clients: `uv run --script scripts/ps4_mcp.py` over
 stdio. It never touches the loader port, which GoldHEN closes after one
 connection.
 
+## App on the home screen
+
+An optional launcher app puts PS4LM on the home screen: pick a model, press X,
+and the TV shows the chat address and a QR code. It starts the same server
+payload; you still chat from a phone or laptop. Built on the Mac, not yet
+tried on the console. See [App](docs/APP.md).
+
 ## Docs
 
 [Roadmap](docs/ROADMAP.md) · [Toolchain](docs/TOOLCHAIN.md) ·
 [Console](docs/CONSOLE.md) · [Porting](docs/PORTING.md) ·
-[Models](docs/MODELS.md) · [Benchmarks](docs/BENCH.md)
+[Models](docs/MODELS.md) · [Benchmarks](docs/BENCH.md) · [App](docs/APP.md)
 
 ## Credits
 

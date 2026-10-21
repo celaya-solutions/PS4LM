@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Roadmap
-Version:     v1.4.0
+Version:     v1.5.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      32d04ff50f7b780d2c661e49e6a3dc085f7723c659494887752194be3cd2c954
+Date:        2026-10-21
+SHA256:      f18a023b1876e9706a8616b89a52cea673fcc26547c16b215146409a21a8f2d7
 Chain:       solana-mainnet
-Tx:          58FrpE1wTKuJvyeyqhWHTZYpQPUuq8FjYKPum4HhBLfeuVNu6y5tHNaykCzEiDb7oWSs2MorycNecUUtKrdaCTuK
+Tx:          2A8iv3hkGfwadXEKasbEu98UTwyxFxxsdRQZHyciDZwpSHS6BJUFosEdATvSazg6LuQJG9WJPJGk3UygefFubgUV
 License:     GPL-3.0-or-later
 ```
 
@@ -25,7 +25,7 @@ downloads, no TLS).
 | 3 | CPU safety patches and thread sweep | 90 min | Done 2026-10-20: safe max 2 threads with `--prio -1`, see BENCH.md |
 | 4 | First model, web UI from the Mac | 90 min | Not started |
 | 5 | Benchmarks and docs, fresh-clone check | 60 min | Not started |
-| 6 | Optional: auto-start, PKG, model picker | | Only after Phase 5 |
+| 6 | Optional: auto-start, PKG, model picker | | Started early 2026-10-21 (owner OK): app, `serve.sh` and art built on the Mac; console checks open, see APP.md |
 
 ## Phase 0 acceptance
 

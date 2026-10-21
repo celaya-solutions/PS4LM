@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Toolchain
-Version:     v1.3.0
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      e6b87f4ffad31224c359b267775d7b0353f11a35f9868dbe4769f1767db9006c
+Date:        2026-10-21
+SHA256:      60149b608c06848348759b8e8389054098c472cd94fd4da0aa4b7bbeae677ad1
 Chain:       solana-mainnet
-Tx:          3hxGVobZL92ebZgqmh5Rn7kDwbgBTy1CBpafAFKLAtQRiKGa2YXxXP89EEvjvMRbi344cXKpiGtDURt8jxKJxgDq
+Tx:          592MYz73EoAtKCw7aihH7YRkP2CSWqFqhJLgjgCowrYfKL4vWnkwQgoKZzDhDrQ4JSsTiGVvA3zBRYLCMJuJ6D4P
 License:     GPL-3.0-or-later
 ```
 
