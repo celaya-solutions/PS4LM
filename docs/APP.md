@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Home-Screen App
-Version:     v1.0.0
+Version:     v1.1.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      c7d1ef9191bdf8b50f50075a8cdbd75724651f9acf01aad58ce5134dbfbfdceb
+SHA256:      e659f431b899649228d002df8c89184e5bcd0564bc3da8d64fc39f85c57de2dd
 Chain:       solana-mainnet
-Tx:          2y4wzGpY9xh55sTpKnNNExu62wqAUZ9V9hEN2PYdZAjKmeW9RXgYSitXELFhGbNnx2h8NN6UJcvPJqtMtLMJuYyG
+Tx:          3DDnzVGNtv2xMFQ3v2KTyZwLs4XXY7NfSZAr9Wn4FaAuEgug6z9Uxw761FqRfKuW9zM4iLRzNdCG3iPdGLuK5yM
 License:     GPL-3.0-or-later
 ```
 
@@ -16,8 +16,25 @@ PS4LM can sit on the PS4 home screen as an app with its own icon. Open it, pick
 a model, press X, and the TV shows the chat address and a QR code. Scan the
 code with a phone on the same network to chat.
 
-**Status (2026-10-21):** built and tested on the Mac only. It has not run on
-the console yet. The checks below are still to do.
+**Status (2026-10-21):** the app itself has not run on the console yet (it
+needs the owner to install it from USB). Everything it drives was checked on
+the console on 2026-10-21, with `--no-jinja` (see below):
+
+- `scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf 1024 -- --no-jinja` started the
+  server and printed the chat address in 13 s. The server kept running after
+  the script hung up on elfldr, and answered a chat.
+- `/slots` answers at llama.cpp b11608 and reports `is_processing`, so Busy
+  works.
+- The app's stop line (`stop.elf` with `llama-server`) stopped the server in
+  about 1 s; elfldr stayed up.
+
+**Known problem:** on 2026-10-21 every llama-server build (this session's and
+another session's) died at `load_model: initializing` with PRX_RUNTIME_ERROR:
+a bad `free` inside the chat-template (jinja) setup, called from
+`server_context_impl::init`. This is the same crash as on 2026-10-20. Until it
+is fixed, keep `--no-jinja` in `server.conf` (`serve.sh ... -- --no-jinja`
+writes it), and the app launches with it too. Replies then show the model's
+raw `<think>` text.
 
 ## What it is and is not
 
@@ -88,5 +105,5 @@ memory, ports 9021 and 8080, the console IP, and whether it can read and write
    model list and `server.conf` need another path (GoldHEN FTP on
    127.0.0.1:2121), and the launcher needs that change first.
 2. Launcher: walk every state above, scan the QR code, start and stop.
-3. Does `/slots` answer at llama.cpp b11608? If not, Busy never shows.
-4. Icon and background on the home screen.
+3. Icon and background on the home screen.
+4. The jinja crash above, after a console restart: does a restart clear it?
