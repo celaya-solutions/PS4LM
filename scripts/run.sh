@@ -39,17 +39,7 @@ if [ -n "${PS4LM_LOG_HOST:-}" ]; then
 fi
 curl -sS --ftp-create-dirs -T "$elf" "ftp://$host:$ftp$remote_dir/$name"
 
-# elfldr v0.7 splits args on spaces and drops a backslash before any character
-# (socksrv.c args_split). The URI ends at a newline and the args value at & or
-# #, so only %, &, # and control characters are percent-encoded. Its decoder
-# skips a %XX in the last three characters (uri.c uri_decode), so a trailing
-# backslash, which args_decode removes, keeps one off the end. The whole line
-# must fit in 1024 bytes (PATH_MAX).
-args=$(python3 -I -c '
-import sys
-parts = [a.replace("\\", "\\\\").replace(" ", "\\ ") for a in sys.argv[1:]]
-out = "".join(c if c not in "%&#" and ord(c) >= 32 else "".join("%%%02X" % b for b in c.encode()) for c in " ".join(parts))
-print(out + "\\" if out[-3:-2] == "%" else out)
-' "$@")
+# Encoding rules for the launch line: scripts/elfldr-args.py.
+args=$(python3 -I "$root/scripts/elfldr-args.py" "$@")
 
 echo "file:$remote_dir/$name?args=$args" | socat -t 9999999 - "TCP:$host:$elfldr"
