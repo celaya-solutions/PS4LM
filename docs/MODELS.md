@@ -4,9 +4,9 @@ Version:     v1.2.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      5fcfd5e50f72675d9571e60c53ff136ff677529461c812ae2148caa23074c2db
+SHA256:      781160cca5fbfec6513899f9da899866564ba1dea4bb6ebad6648c0fff5334b7
 Chain:       solana-mainnet
-Tx:          5QKy1PSq2BVVVwyERcitsjceMQoXTEB34ET7o9SsWzvCEzKEeRNL1xTNyQtLEZT5nG4H9JQz7h4WUc1yemJHq5J
+Tx:          AH6753eHr9EKGzZpMzQpoNHTqz3ppDkjtK4XVcsg79abjQ4HELAQJ7BeAynmvdwPwQqCNW3hPA1P1gsCQpWZLgJ
 License:     GPL-3.0-or-later
 ```
 
@@ -59,11 +59,19 @@ and only ~120 MiB more than IQ4_XS. Try IQ4_XS or Q3_K_M if RAM runs short.
 scripts/fetch-model.sh unsloth/gemma-4-E2B-it-GGUF gemma-4-E2B-it-Q4_K_M.gguf
 scripts/run.sh llama-server -m /data/PS4LM/models/gemma-4-E2B-it-Q4_K_M.gguf \
     --host 0.0.0.0 --port 8080 -t 2 --prio -1 -lm none -lzm on \
-    -c 4096 -np 1 -b 128 -ub 128 -rea off
+    -c 4096 -np 1 -b 128 -ub 128 --no-jinja \
+    -sysf /data/PS4LM/prompts/ps4lm-system.txt
 ```
 
-- `-rea off`: Gemma 4 thinks first by default and spends `max_tokens` on it
-  (the reply comes back empty with `finish_reason: length`).
+- `--no-jinja`: needed while the jinja start crash is open (docs/APP.md).
+  Upstream has no built-in Gemma 4 format, so without jinja the server quits
+  with "this custom template is not supported". `patches/0005` adds one
+  (`gemma4`): all system text in one system turn, then `<|turn>user` /
+  `<|turn>model` turns closed by `<turn|>`, thinking off, no tools (0004
+  drops them). Checked on a Mac build with 0001-0005 and `-sysf`: one system
+  turn, PS4LM text first, short on-topic reply, `finish_reason: stop`.
+- With jinja instead, add `-rea off`: Gemma 4 then thinks first by default
+  and spends `max_tokens` on it (empty reply, `finish_reason: length`).
 - `-b 128 -ub 128`: compute buffer 32 MiB instead of 127 MiB.
 - `-np 1`: one slot. KV is small (36 MiB at 4096; most layers use a sliding
   window and the last layers share KV).
