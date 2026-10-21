@@ -53,7 +53,7 @@ $(OBJDIR)/%.o: %.cpp src/*.h | check-oo
 
 # Sony-free files the toolchain ships with its samples are copied in at build
 # time, not kept in git: the module stubs, right.sprx and the OFL font.
-$(OUT)/$(TITLE_ID).pkg: $(OBJS) assets/icon0.png Makefile
+$(OUT)/$(TITLE_ID).pkg: $(OBJS) assets/icon0.png $(wildcard assets/pic1.png) Makefile
 	rm -rf $(STAGE) && mkdir -p $(STAGE)/sce_sys/about $(STAGE)/sce_module $(STAGE)/assets/fonts
 	$(LLVM)/ld.lld $(OBJS) -o $(OUT)/eboot.elf $(LDFLAGS)
 	cd $(STAGE) && $(FSELF) -in=$(OUT)/eboot.elf -out=$(OUT)/eboot.oelf --eboot eboot.bin --paid 0x3800000000000011
