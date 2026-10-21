@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Models
-Version:     v1.3.1
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      0bd059da16de69d2129b8c9212fc40ec94565c3990a003c9ae3baaeb1f1dbb55
+SHA256:      e259d5023c5c5f5eb563f7a2e9986d2723570c7f0d39cb66b4baccfe508ab0fd
 Chain:       solana-mainnet
-Tx:          55PoV2MZUFi9qkmDQFKGrJCavGsqYJ1ofuMjAoufWEziLkVSAouTZS1jNF6zG5ahE2914sAdj5vrn6a3HtwXEvd8
+Tx:          4zhA4A8TX5zNFt32p8SeXEmAuWYKonJYwjpuhcMwSdakPQ6yvuHvzbH3YhVavuKM2kz75eKLJPq3YRvA9v6Q5Gsn
 License:     GPL-3.0-or-later
 ```
 
@@ -31,67 +31,5 @@ default 4 slots at `-c 1024` leave each chat 256 tokens. Qwen3.5 thinks by
 default and can spend all of `max_tokens` doing it; send
 `"chat_template_kwargs": {"enable_thinking": false}` for plain replies.
 
-## Gemma 4 E2B
-
-Gemma 4 E2B is the smallest Gemma 4 (`gemma4` arch, in llama.cpp b11608).
-Every E2B file is 2.2 to 3.2 GB, but about half of each is one tensor,
-`per_layer_token_embd` (per-layer embeddings, PLE). A token reads only its own
-row of it, so `-lzm on` (`--lazy-mode on`) leaves it on disk and reads rows on
-demand through the file mapping. Everything else is loaded into RAM as usual
-with `-lm none`. The default (`auto`) keeps PLE resident, which does not fit.
-
-File: `unsloth/gemma-4-E2B-it-GGUF` / `gemma-4-E2B-it-Q4_K_M.gguf`,
-3,106,738,272 bytes, sha256
-`740185b21d22ceb83a11c3aa62ad5842ef32c70f6096d756bbee85a1e4ec34b8`.
-
-| Q4_K_M part | Size | Where |
-|---|---|---|
-| `per_layer_token_embd` (Q5_K) | 1540 MiB | disk, `-lzm on` |
-| `token_embd` (Q4_K, also the output head) | 216 MiB | RAM |
-| blocks, norms, projections | 1192 MiB | RAM |
-
-Smaller files keep about as much in RAM (from the GGUF headers): Q3_K_M
-1144 MiB, IQ4_XS 1291 MiB, unsloth Q4_0 1345 MiB, ggml-org Q4_0 1435 MiB
-(its `token_embd` is Q8_0). Q4_K_M is the pick: the usual quality default,
-and only ~120 MiB more than IQ4_XS. Try IQ4_XS or Q3_K_M if RAM runs short.
-
-```sh
-scripts/fetch-model.sh unsloth/gemma-4-E2B-it-GGUF gemma-4-E2B-it-Q4_K_M.gguf
-scripts/run.sh llama-server -m /data/PS4LM/models/gemma-4-E2B-it-Q4_K_M.gguf \
-    --host 0.0.0.0 --port 8080 -t 2 --prio -1 -lm none -lzm on \
-    -c 4096 -np 1 -b 128 -ub 128 --no-jinja \
-    -sysf /data/PS4LM/prompts/ps4lm-system.txt
-```
-
-- `--no-jinja`: was needed while the jinja start crash was open (fixed,
-  PORTING 19); `patches/0005` keeps this no-jinja path working.
-  Upstream has no built-in Gemma 4 format, so without jinja the server quits
-  with "this custom template is not supported". `patches/0005` adds one
-  (`gemma4`): all system text in one system turn, then `<|turn>user` /
-  `<|turn>model` turns closed by `<turn|>`, thinking off, no tools (0004
-  drops them). Checked on a Mac build with 0001-0005 and `-sysf`: one system
-  turn, PS4LM text first, short on-topic reply, `finish_reason: stop`.
-- With jinja instead, add `-rea off`: Gemma 4 then thinks first by default
-  and spends `max_tokens` on it (empty reply, `finish_reason: length`).
-- `-b 128 -ub 128`: compute buffer 32 MiB instead of 127 MiB.
-- `-np 1`: one slot. KV is small (36 MiB at 4096; most layers use a sliding
-  window and the last layers share KV).
-
-Mac check (2026-10-21, CPU only, same flags, 2 threads): lazy on 2045 MiB
-RSS, lazy off 3585 MiB. Log: model 348 MiB + 1275 MiB (repacked for ARM),
-PLE 1540 MiB mapped, KV 33 MiB, compute 32 MiB. Phase 0 measured ~3.5 GiB
-for a payload (3.0 GiB on a tired console), so on paper it fits with ~1 GiB
-to spare.
-
-**Console (2026-10-21): it does not run.** Two tries with the line above, but
-with jinja and `-rea off` instead of `--no-jinja` (main build with
-0001-0005 and the PORTING 19 fix). The launcher app was open on the TV both
-times. Loading reached `llama threadpool init` (60 to 87 s), then the console
-thrashed. Payload FMEM stayed near 1000 MiB and swap went from 355 to
-1011 MiB. Shell UI missed its heartbeat for up to 16 s. Try 1 exited by
-itself with no error line; try 2 was stopped by hand. The server never
-answered (`/health` 503 "Loading model"). Qwen3.5 0.8B came back right after
-at 4.1 t/s. Next things to try: close the launcher app, and use Q3_K_M
-(1144 MiB in RAM). Earlier, a memprobe run (its 1 GiB mmap read) knocked the
-console off the network until a restart. That points at file-mapped reads,
-which `-lzm on` depends on.
+Gemma 4 E2B Q4_K_M (with `-lzm on`) was tried on 2026-10-21 and dropped: it
+thrashed swap while loading (Shell UI froze up to 16 s) and never answered.
