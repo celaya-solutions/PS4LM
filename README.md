@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.2.0
+Version:     v1.6.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      fd89929478302f62c206ac3365fd4c5296f045085c71f57b7d3232e7e6f741a3
+Date:        2026-10-21
+SHA256:      dc311ca9b231220498fe789d684d10435cdd1e3d73cea2caa9f8ed823f874e4e
 Chain:       solana-mainnet
-Tx:          5jRar5KgjtwkhAgnQLFrMyztjvAtPkQUSAWo9XRYMMZh4Mu8TBrRpyv3YLXS6A1G7CnGFe3jF9W3xajifR8KAcn1
+Tx:          5iKcYowJUVvekmyxsFPgAyJbPSdVqC323xvQADkFqthJqCyodzZyHiza823oyVaFicMWk4UTxTfSkGv6bpP9bLmH
 License:     GPL-3.0-or-later
 ```
 
@@ -61,11 +61,68 @@ On the console, run the tools with `-t 2 --prio -1` and without mmap
 Settings live in `scripts/env.sh`. `PS4_LOADER_PORT` is the enabler's payload
 port: 9090 for GoldHEN (the default), 9020 for HEN VTX.
 
+## System prompt
+
+`prompts/ps4lm-system.txt` tells the model who it is: PS4LM, made by Celaya
+Solutions Research, talking as the console itself. `patches/0003` turns
+`--system-prompt-file` back on for `llama-server` and puts that text first in
+every chat; a client's own system message is kept after it, in the same
+message. It is about 160 tokens, so a slot's first reply waits ~20 s longer
+on the console; later turns reuse the cached prompt.
+
+```sh
+curl --ftp-create-dirs -T prompts/ps4lm-system.txt ftp://$PS4_HOST:2121/data/PS4LM/prompts/
+scripts/run.sh llama-server -m /data/PS4LM/models/model.gguf --host 0.0.0.0 --port 8080 \
+    -t 2 --prio -1 -sysf /data/PS4LM/prompts/ps4lm-system.txt
+```
+
+## Agent access (MCP)
+
+`scripts/ps4_mcp.py` is an MCP server that gives an AI agent the same reach:
+console status, `console-setup.sh`, FTP list/read/upload, `run.sh` (long runs
+become jobs to poll or stop), the kernel log on 3232 and the Mac log listener.
+It needs [uv](https://docs.astral.sh/uv/); `.mcp.json` registers it for Claude
+Code in this folder. Other clients: `uv run --script scripts/ps4_mcp.py` over
+stdio. It never touches the loader port, which GoldHEN closes after one
+connection.
+
+`AGENTS.md` holds the rules for coding agents (Codex reads it; `CLAUDE.md`
+points Claude Code to it). Codex gets the same MCP server from
+`.codex/config.toml` once you trust this folder in Codex.
+
+## Bigger brain (Claude or Codex)
+
+When the console's model is too small, `scripts/brain.py` answers instead. It
+is an OpenAI-style chat endpoint on the Mac, so any OpenAI-compatible chat app
+can use it next to the PS4's own server. Sign-in comes from the tools you
+already use, with no API keys: Claude through the Claude Agent SDK (your
+`claude` login; an `ANTHROPIC_API_KEY` in the environment wins over it) and
+Codex through `codex exec` (your `codex login`). Neither gets tools.
+
+```sh
+uv run --script scripts/brain.py              # http://127.0.0.1:8090/v1
+curl -s localhost:8090/v1/chat/completions \
+  -d '{"model":"claude","messages":[{"role":"user","content":"Hi!"}]}'
+BRAIN_TOKEN=secret uv run --script scripts/brain.py --host 0.0.0.0   # your network
+```
+
+Models are `claude` and `codex`, or `claude:<model>` / `codex:<model>`. It
+speaks as PS4LM (`prompts/brain-system.txt`). It refuses to listen beyond the
+Mac without `BRAIN_TOKEN`, because every reply uses your Claude or Codex plan.
+Streaming sends the whole reply as one chunk.
+
+## App on the home screen
+
+An optional launcher app puts PS4LM on the home screen: pick a model, press X,
+and the TV shows the chat address and a QR code. It starts the same server
+payload; you still chat from a phone or laptop. Built on the Mac, not yet
+tried on the console. See [App](docs/APP.md).
+
 ## Docs
 
 [Roadmap](docs/ROADMAP.md) · [Toolchain](docs/TOOLCHAIN.md) ·
 [Console](docs/CONSOLE.md) · [Porting](docs/PORTING.md) ·
-[Models](docs/MODELS.md) · [Benchmarks](docs/BENCH.md)
+[Models](docs/MODELS.md) · [Benchmarks](docs/BENCH.md) · [App](docs/APP.md)
 
 ## Credits
 

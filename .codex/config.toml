@@ -1,0 +1,5 @@
+# Codex project config (loaded once you trust this folder in Codex).
+# Same MCP server Claude Code gets from .mcp.json.
+[mcp_servers.ps4]
+command = "uv"
+args = ["run", "--script", "scripts/ps4_mcp.py"]

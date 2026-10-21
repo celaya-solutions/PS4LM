@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Toolchain
-Version:     v1.3.0
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      e6b87f4ffad31224c359b267775d7b0353f11a35f9868dbe4769f1767db9006c
+Date:        2026-10-21
+SHA256:      60149b608c06848348759b8e8389054098c472cd94fd4da0aa4b7bbeae677ad1
 Chain:       solana-mainnet
-Tx:          3hxGVobZL92ebZgqmh5Rn7kDwbgBTy1CBpafAFKLAtQRiKGa2YXxXP89EEvjvMRbi344cXKpiGtDURt8jxKJxgDq
+Tx:          592MYz73EoAtKCw7aihH7YRkP2CSWqFqhJLgjgCowrYfKL4vWnkwQgoKZzDhDrQ4JSsTiGVvA3zBRYLCMJuJ6D4P
 License:     GPL-3.0-or-later
 ```
 
@@ -112,3 +112,29 @@ and a thread copies every byte to elfldr's socket (the terminal running
 file, from the address baked in at build time. If the Mac does not answer within
 a second, the file still gets everything. `send.sh` does not touch
 `loghost.txt`, so it uses whatever the last `run.sh` wrote.
+
+## OpenOrbis (app only)
+
+The home-screen app in `app/` is the one part built with OpenOrbis, because a
+fake PKG needs its `create-fself`, `create-gp4` and `PkgTool.Core`. The
+payloads (llama.cpp, probes) stay on the payload SDK.
+
+- Version: OpenOrbis PS4 Toolchain v0.5.4, `toolchain-llvm-18.tar.gz` from the
+  GitHub release. Unpacked to `~/ps4dev/OpenOrbis/PS4Toolchain`;
+  `scripts/build-app.sh` sets `OO_PS4_TOOLCHAIN` to that path when it is unset.
+- Its macOS tools are x86_64 and run under Rosetta. `PkgTool.Core` is
+  self-contained (no separate .NET install).
+- Compiler: Homebrew `llvm@18` clang and ld.lld (`LLVM=` overrides the path).
+  Use `-std=gnu11` / `-std=gnu++17`: strict `c++17` hides `locale_t` and its
+  libc++ headers fail.
+- Trap: `orbis/libkernel.h` declares `sceKernelAvailableFlexibleMemorySize`
+  with a `size_t` instead of a pointer; `app/src/probe.cpp` binds it under
+  another name.
+- The module stubs, `right.sprx` and the OFL font come from the toolchain's
+  samples at build time and are not kept in git.
+
+```sh
+scripts/build-app.sh                 # build/app/PSLM00001.pkg
+scripts/build-app.sh /Volumes/USB    # and copy it to a USB drive
+PROBE=1 scripts/build-app.sh         # the probe app (what an app may do)
+```
