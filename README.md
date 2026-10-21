@@ -21,9 +21,10 @@ CPU only, one console, one interface. It follows the layout and fixes of
 
 ## Status
 
-Phase 3 done: llama.cpp builds for the PS4, and `llama-bench` runs Qwen3 0.6B
-on the console at about 14 tokens/s reading and 6 tokens/s writing (2
-threads). Next is Phase 4, `llama-server` with the web UI. See
+Phase 4 done: `llama-server` runs Qwen3.5 0.8B on the console and a browser
+on the Mac chats with it, at about 8 tokens/s reading and 3 to 4 tokens/s
+writing (2 threads). A single long chat ran to about 2,900 tokens of history
+(`-c 4096 -np 1`). Next is Phase 5, benchmarks and a fresh-clone check. See
 [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## What you need
@@ -55,7 +56,7 @@ scripts/bench.sh /data/PS4LM/models/model.gguf   # thread sweep, docs/BENCH.md
 ```
 
 On the console, run the tools with `-t 2 --prio -1` and without mmap
-(`--no-mmap`, or `-lm none` for llama-bench); docs/BENCH.md says why.
+(`-lm none`); docs/BENCH.md says why.
 
 Settings live in `scripts/env.sh`. `PS4_LOADER_PORT` is the enabler's payload
 port: 9090 for GoldHEN (the default), 9020 for HEN VTX.

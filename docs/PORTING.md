@@ -165,9 +165,49 @@ Every workaround: symptom, cause, fix, file. Newest last.
 - Cause: not found. Phase 0 measured file mmap faulting in at 48 MB/s, and
   generation behaves as if the 493 MiB of weights are read again for every
   token rather than staying in memory.
-- Fix: read the weights into memory: `-lm none` for `llama-bench`,
-  `--no-mmap` for `llama-server` and `llama-cli` (Phase 4).
+- Fix: read the weights into memory with `-lm none`. At b11608 that is the
+  flag for every tool; `--no-mmap` is gone (Phase 4).
 - File: `scripts/bench.sh`.
+
+## 16. SIGPIPE killed llama-server when the Mac hung up
+
+- Symptom: stopping `scripts/run.sh` (its socat) while `llama-server` ran
+  killed the server on its next log line.
+- Cause: the tool's stdout goes through ps4/compat/log.c to elfldr's socket
+  and the Mac's log listener. A write to a closed socket raises SIGPIPE,
+  whose default action ends the process.
+- Fix: both sockets set `SO_NOSIGPIPE`; a write then just fails.
+- File: `ps4/compat/log.c`.
+- Status: works on the console (2026-10-20): run.sh's socat killed, the next
+  chat answered and `/health` stayed ok.
+
+## 17. Every payload is named "Payload"; kinfo_proc is not the SDK's size
+
+- Symptom: a process list shows each tool as `Payload`, so a name cannot pick
+  the one to stop. Stepping the `KERN_PROC` list by `sizeof(struct
+  kinfo_proc)` reads garbage after the first record.
+- Fix: log.c writes the tool's pid to `/data/PS4LM/run/<tool>.pid`, and
+  `probes/stop` sends SIGTERM to that pid only while it is still a
+  `Payload`. It steps the list by each record's `ki_structsize`.
+- Files: `ps4/compat/log.c`, `probes/stop/main.c`.
+- Status: works (`scripts/run.sh stop llama-server` shuts it down cleanly).
+
+## 18. `localeconv` has an empty decimal point: JSON numbers with a fraction abort llama-server
+
+- Symptom: the first chat that sent `"temperature": 0.7` killed the server.
+  Log: `json.hpp:8323: GGML_ASSERT(endptr == token_buffer.data() +
+  token_buffer.size()) failed`. Requests with only whole numbers worked,
+  which is why the web UI and the Phase 4 curl tests had not hit it.
+- Cause: Sony's `localeconv()->decimal_point` is `""` in a payload, even
+  after the server's `setlocale(LC_NUMERIC, "C")` (`probes/libcprobe
+  localeconv` prints 0). nlohmann/json writes that character in place of
+  each `.` before `strtod`, so `strtod` stops at the fraction and the
+  lexer's check fails. Sony's `strtod` itself is fine (`strtod_end` = 3 for
+  "0.7").
+- Fix: PS4LM's own `localeconv`, returning the "C" locale's values.
+- File: `ps4/compat/compat.c`.
+- Status: works on the console (2026-10-21): the long chats in BENCH.md send
+  `temperature` 0.7 on every turn.
 
 ## Checked and not needed
 

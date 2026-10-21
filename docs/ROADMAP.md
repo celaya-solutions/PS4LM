@@ -23,7 +23,7 @@ downloads, no TLS).
 | 1 | Plumbing: send, logs, run, FTP upload | 60 min | Done 2026-10-20: `scripts/run.sh hello` builds, uploads and runs in 0.3 s |
 | 2 | Build llama.cpp for Jaguar | 2 h | Done 2026-10-20: three tools link, imports checked; see PORTING.md |
 | 3 | CPU safety patches and thread sweep | 90 min | Done 2026-10-20: safe max 2 threads with `--prio -1`, see BENCH.md |
-| 4 | First model, web UI from the Mac | 90 min | Not started |
+| 4 | First model, web UI from the Mac | 90 min | Done 2026-10-21: Qwen3.5 0.8B chats from the Mac, long chats to 4096 context, see BENCH.md |
 | 5 | Benchmarks and docs, fresh-clone check | 60 min | Not started |
 | 6 | Optional: auto-start, PKG, model picker | | Only after Phase 5 |
 
@@ -66,9 +66,19 @@ downloads, no TLS).
   [BENCH.md](BENCH.md).
 - A payload cannot widen its CPU mask (`probes/cpuprobe`, EPERM), so 2 CPUs
   is the ceiling without kernel changes, which are out of scope.
-- For Phase 4: load weights with `--no-mmap` (mmap'd weights generate 13x
+- For Phase 4: load weights with `-lm none` (mmap'd weights generate 13x
   slower, PORTING.md 15), launch with `-t 2 --prio -1`, and watch swap: a
   ~1 GB payload already pushed about 200 MB of the shell to swap.
+
+## Phase 4 acceptance
+
+- Qwen3.5 0.8B Q4_K_M runs in `llama-server` on the console; the web UI and
+  curl from the Mac got answers (2026-10-20, `-c 1024`).
+- The server lives through the Mac hanging up (PORTING.md 16) and stops
+  cleanly with `scripts/run.sh stop llama-server` (PORTING.md 17).
+- Fractional JSON numbers no longer abort it (PORTING.md 18).
+- Long chats at `-c 2048` and `-c 4096` with `-np 1`: numbers in
+  [BENCH.md](BENCH.md), settings in [MODELS.md](MODELS.md).
 
 ## Stop and ask
 

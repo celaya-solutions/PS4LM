@@ -41,6 +41,31 @@ setting is **`-t 2 --prio -1`**, about 5% slower than normal priority.
 Other single runs of note, same model: mmap'd weights (the default load mode)
 at 1 thread gave 4.74 / 0.34 (PORTING.md 15).
 
+## Long chat (Phase 4)
+
+`scripts/longchat.py`, 2026-10-21: one conversation that grows turn by turn
+(160-token replies, temperature 0.7, thinking off) until the next turn would
+not fit, then asks for a word given in the first turn, then sends one
+request bigger than the context. Qwen3.5 0.8B Q4_K_M, `llama-server -t 2
+--prio -1 -lm none -np 1`. History is the prompt tokens of that turn; the
+server reuses its cache, so each turn only reads the new part.
+
+| Context | Turns | History reached | Prompt t/s | Generation t/s, first to last | Turn time | Recall | Too-long request |
+|---|---|---|---|---|---|---|---|
+| 2048 | 12 + recall | 1,725 | 6.4-9.9 | 4.12 to 3.39 | 6-68 s | right ("PERIWINKLE") | 400 `exceed_context_size_error`, server ok after |
+| 4096 | 24 (stopped) | 2,927 | 5.5-9.0 | 4.06 to 3.03 | 7-77 s | not reached | not reached |
+
+The 4096 run was stopped at turn 24 to end the session, with the server
+healthy; it shut down cleanly on SIGTERM. Generation slows by about a quarter
+as the history nears 3,000 tokens, so a full turn at the end takes over a
+minute.
+
+Kernel log during the 4096 run (`VM Stats` from SceShellCore): RSS about
+200 MB before the server, about 1,170 MB with it; swap out rose from 139 MB
+to about 690 MB. Ten `No heart beat of Shell UI` warnings, the longest
+4 s, even at `--prio -1`. The console stayed up and the homebrew services
+stayed reachable.
+
 ## Models (Phase 5)
 
 `llama-bench -p 512 -n 128` at the safe thread maximum, with the Mac (M5) for
