@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Roadmap
-Version:     v1.5.0
+Version:     v1.6.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      f18a023b1876e9706a8616b89a52cea673fcc26547c16b215146409a21a8f2d7
+SHA256:      e814c4a43a0d673fa548a36dc40e2e95eb2d22f6111d578c9daff807e8323e20
 Chain:       solana-mainnet
-Tx:          2A8iv3hkGfwadXEKasbEu98UTwyxFxxsdRQZHyciDZwpSHS6BJUFosEdATvSazg6LuQJG9WJPJGk3UygefFubgUV
+Tx:          Dr8svqv25T39XsC2YAnvjrdbFpZd5zccN3vz1JhshTEjyySdVW1RyGo3WRDN7VpFgzCHryJs4Zjozj2F5HyGwae
 License:     GPL-3.0-or-later
 ```
 

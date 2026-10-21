@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Benchmarks
-Version:     v1.1.0
+Version:     v1.2.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      bbb3f429078b178e8506c49d7866d869dccf0b58cc132dbd00d74d696073cf3c
+Date:        2026-10-21
+SHA256:      c01f253a053c6f63a85c2c691556fabfa701c2382b4cfb73e7108b20633ccf8f
 Chain:       solana-mainnet
-Tx:          21ZTSi7SQtBT1UrADJdoRJm4VSJYM9t3EM5gv5Xahk6uCvdhXStKyzt18741Vobd4875XJv8LEqx1p8LM54WE3Js
+Tx:          3p3PUNRpeo8nafYVkn9fQd5KUTsEQhikRmtSgMFz9zVfyznrJ3iE9hKGNnGoVuf7KSHNiDxuzvbkoAQUaWAjnEU8
 License:     GPL-3.0-or-later
 ```
 

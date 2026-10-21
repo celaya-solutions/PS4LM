@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Models
-Version:     v1.1.0
+Version:     v1.2.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      86f8ed1a9e03e71bd2068415026f3e74f4ec4193a85ed7da8012d180be326a85
+SHA256:      5fcfd5e50f72675d9571e60c53ff136ff677529461c812ae2148caa23074c2db
 Chain:       solana-mainnet
-Tx:          3vHihg6zJTDJobsew9RvihWcp2HA9fyBHtL6A9xtYCstqCeUqQFLMGSPehEA97wJ6MUGfjGd8gKRogWF8hTde1hw
+Tx:          5QKy1PSq2BVVVwyERcitsjceMQoXTEB34ET7o9SsWzvCEzKEeRNL1xTNyQtLEZT5nG4H9JQz7h4WUc1yemJHq5J
 License:     GPL-3.0-or-later
 ```
 

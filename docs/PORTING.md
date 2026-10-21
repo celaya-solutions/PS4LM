@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Porting Notes
-Version:     v1.2.0
+Version:     v1.3.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      34ccd19cfe6b36578b8a9d160fab77393b9b1f37d6f075fd7f76861e177d3d19
+Date:        2026-10-21
+SHA256:      bd59f7f06038d27bdd0d4d58815193c771851629d5ecada7233b0441e28f30d3
 Chain:       solana-mainnet
-Tx:          3gG3Vujc3PKTm2UaiCnhar1GYN4J5F8mbBUBzfmgZm6s798uYQLVeSTigPGcHBKc2B6uiXsP7XYqpUXkRHFj5QyS
+Tx:          4S2NqrFGT8iDghS1WcbQtGKX4ixNvcv1SYF34yM9pYu8CzgvsQ2zWnquES3MQXrPKFv9UTH3KwhjhgK7zdSQCWtd
 License:     GPL-3.0-or-later
 ```
 

@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.6.0
+Version:     v1.7.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      dc311ca9b231220498fe789d684d10435cdd1e3d73cea2caa9f8ed823f874e4e
+SHA256:      47f82ab9ffe26721205dc1e1fa1f4545abe79f719bc5363b67cece0fcfe99344
 Chain:       solana-mainnet
-Tx:          5iKcYowJUVvekmyxsFPgAyJbPSdVqC323xvQADkFqthJqCyodzZyHiza823oyVaFicMWk4UTxTfSkGv6bpP9bLmH
+Tx:          BQxPcufRXpCmJL9XxUq2nV3hTKAxbL5un2rw8jHk2R7SLyfLncXZh5fDjDeqdXf13tcFZ2x9aCcacJmUQuRMv1o
 License:     GPL-3.0-or-later
 ```
 
