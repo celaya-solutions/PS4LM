@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Home-Screen App
-Version:     v1.1.0
+Version:     v1.2.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      e659f431b899649228d002df8c89184e5bcd0564bc3da8d64fc39f85c57de2dd
+SHA256:      ea50329f3d94318ba089b8a7f128c8e15477dc31920044b57f51709f2347b818
 Chain:       solana-mainnet
-Tx:          3DDnzVGNtv2xMFQ3v2KTyZwLs4XXY7NfSZAr9Wn4FaAuEgug6z9Uxw761FqRfKuW9zM4iLRzNdCG3iPdGLuK5yM
+Tx:          3b9827eoVgh2VxtmLKRKDe5VcuNP8wNk58Kn9KHBoHTN5nx9Bsf9WRwYfLqPVZ1WFWpWyCEzCKFs5dFsUU2rm1hn
 License:     GPL-3.0-or-later
 ```
 
@@ -82,8 +82,10 @@ Uninstall: Settings > Storage > Applications, delete PS4LM.
 | Busy | Writing a reply... |
 | Failed | Server stopped. See /data/PS4LM/logs. |
 
-Buttons: Up/Down picks a model (when stopped), X starts, O stops, OPTIONS
-closes the app. Closing leaves the server running.
+Buttons: Up/Down picks a model (when stopped), X starts, O stops. Close the
+app with the PS button; OPTIONS only says so. The app never returns from
+`main`: an installed app that does dies with SIGSYS. Closing leaves the server
+running.
 
 If a server is already running (for example, started by `serve.sh`), the app
 shows Ready and does not start a second one. A load that has not answered
@@ -100,10 +102,8 @@ memory, ports 9021 and 8080, the console IP, and whether it can read and write
 
 ## Still to check on the console
 
-1. Probe app: can an app reach 127.0.0.1:9021, and read and write
-   `/data/PS4LM`? Fake-PKG apps may be sandboxed away from `/data`. If so, the
-   model list and `server.conf` need another path (GoldHEN FTP on
-   127.0.0.1:2121), and the launcher needs that change first.
+1. Done 2026-10-21: the probe app reaches 127.0.0.1:9021 and reads and writes
+   `/data/PS4LM` (facts in [Console](CONSOLE.md#app-process)).
 2. Launcher: walk every state above, scan the QR code, start and stop.
 3. Icon and background on the home screen.
 4. The jinja crash above, after a console restart: does a restart clear it?

@@ -14,8 +14,8 @@
 #include <string>
 
 #include <orbis/NetCtl.h>
+#include <orbis/SystemService.h>
 
-#include "controller.h"
 #include "graphics.h"
 #include "log.h"
 
@@ -89,7 +89,7 @@ int main(void) {
         fclose(f);
     }
     text += f ? "write /data   yes\n" : "write /data   no\n";
-    text = "PS4LM probe done\n\n" + text + "\nO to exit";
+    text = "PS4LM probe done\n\n" + text + "\nClose with the PS button";
     puts(text.c_str());
 
     auto scene = new Scene2D(1920, 1080, 4);
@@ -99,8 +99,9 @@ int main(void) {
     FT_Face font;
     if (!scene->InitFont(&font, "/app0/assets/fonts/font.ttf", 40))
         return 1;
-    auto pad = new Controller();
-    pad->Init(-1);
+    /* With a pic1.png in the package the PS4 shows it as a splash screen
+     * until the app hides it. */
+    sceSystemServiceHideSplashScreen();
 
     Color bg = {0, 0, 0}, fg = {255, 255, 255};
     for (int frame = 0;; frame++) {
@@ -109,8 +110,5 @@ int main(void) {
         scene->SubmitFlip(frame);
         scene->FrameWait(frame);
         scene->FrameBufferSwap();
-        if (pad->CirclePressed())
-            break;
     }
-    return 0;
 }

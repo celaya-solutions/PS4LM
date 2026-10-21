@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Console Notes
-Version:     v1.2.0
+Version:     v1.3.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
-Date:        2026-10-20
-SHA256:      d40853a4917b3940b88d552c50173a9dda8f1a9f4d3773a8111c94843df7ee2e
+Date:        2026-10-21
+SHA256:      f1f65a52a7701ab6cf4128122efa697defbdb474e922d768f7ce62108804cfa4
 Chain:       solana-mainnet
-Tx:          4JVvHLZYsPdhN2o2f2ciKTW8mZzARBYECiyynyrE3r4dkQSTNZZuDBMPmFb2LrRyBtFQymy1Ddtwb4fa2t7HGTJr
+Tx:          4YmvPQnf4QSgMiaQfEUcU9KCAKc7xJ4wEQLEkde4zozwzGB7gzSm5RMQeohD9n14aDVjLzn6YmFp5XotujX9rNWU
 License:     GPL-3.0-or-later
 ```
 
@@ -238,3 +238,36 @@ memcpy 1.67 GB/s (1 thread), 4.52 GB/s (2 threads); AVX dot 5.70 GFLOPS (1 threa
 /data free 189.7 GiB
 log: /data/PS4LM/memprobe.txt
 ```
+
+## App process
+
+The probe app (`PROBE=1 scripts/build-app.sh`, title PSLM00001, installed with
+GoldHEN's Package Installer) on 2026-10-21, with elfldr loaded and no server
+running:
+
+```
+affinity      rc 0, 6 allowed: 0,1,2,3,4,5
+direct mem    4.50 GiB (whole console)
+flexible free rc 0, 0.43 GiB
+127.0.0.1:9021 elfldr  open
+127.0.0.1:8080 server  closed
+ip            rc 0, 192.168.50.2
+read models   yes, 3 .gguf
+```
+
+- An installed app is not cut off from `/data`: it read `/data/PS4LM/models`
+  and wrote `/data/PS4LM/app-probe.txt`. It reaches elfldr on 127.0.0.1:9021.
+- It may run on CPUs 0-5, where a payload gets only 6,7. That is the case for
+  a later plan that runs the model inside an app; not started.
+- Its flexible memory is small (0.43 GiB free); a payload gets about 3.5 GiB
+  through malloc.
+- Traps found on the way:
+  - The OpenOrbis graphics sample never sets `activeFrameBufferIdx`, so the
+    first draw faults (SIGSEGV, CE-34878-0). Call `SetActiveFrameBuffer(0)`
+    after `Init`.
+  - With `sce_sys/pic1.png` in the package, the PS4 keeps showing it as a
+    splash screen until the app calls `sceSystemServiceHideSplashScreen()`.
+  - Returning from `main` kills the app with SIGSYS. Close it with the PS
+    button.
+  - A `nc -z` check of GoldHEN's BinLoader port uses up its one connection
+    ("Error handling payload"); BinLoader off and on in GoldHEN brings it back.

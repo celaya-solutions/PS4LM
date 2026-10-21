@@ -116,7 +116,7 @@ int main(void) {
     static char names[MAX_MODELS][256];
     const char *models[MAX_MODELS];
     int nmodels = 0, sel = -1, prev_buttons = 0, conf_bad = 0;
-    long last_poll = 0, launched_at = -1, quit_at = -1;
+    long last_poll = 0, launched_at = -1;
     char ip[32] = "", url[64] = "", note[128] = "";
     app_seen seen = {};
     app_state st = ST_NO_LOADER;
@@ -160,7 +160,7 @@ int main(void) {
         prev_buttons = buttons;
         int idle = st == ST_STOPPED || st == ST_FAILED;
         char line[ELFLDR_MAX + 1];
-        if (quit_at < 0 && idle && nmodels > 0 && (pressed & (ORBIS_PAD_BUTTON_UP | ORBIS_PAD_BUTTON_DOWN))) {
+        if (idle && nmodels > 0 && (pressed & (ORBIS_PAD_BUTTON_UP | ORBIS_PAD_BUTTON_DOWN))) {
             int step = pressed & ORBIS_PAD_BUTTON_UP ? -1 : 1;
             for (int i = sel + step; i >= 0 && i < nmodels; i += step)
                 if (conf_pick_model(&conf, &models[i], 1) == 0) { /* skip mmproj- and dot files */
@@ -168,7 +168,7 @@ int main(void) {
                     break;
                 }
         }
-        if (quit_at < 0 && idle && sel >= 0 && seen.loader_open && (pressed & ORBIS_PAD_BUTTON_CROSS)) {
+        if (idle && sel >= 0 && seen.loader_open && (pressed & ORBIS_PAD_BUTTON_CROSS)) {
             snprintf(conf.model, sizeof conf.model, "%s", models[sel]);
             if (!conf_bad)
                 write_conf(&conf);
@@ -185,7 +185,7 @@ int main(void) {
                 snprintf(note, sizeof note, "Could not reach the loader on port %d.", ELFLDR_PORT);
             }
         }
-        if (quit_at < 0 && (st == ST_LOADING || st == ST_READY || st == ST_BUSY) &&
+        if ((st == ST_LOADING || st == ST_READY || st == ST_BUSY) &&
             (pressed & ORBIS_PAD_BUTTON_CIRCLE)) {
             /* launched_at stays: until the port is seen closing, or the load
              * timeout passes, X stays off, so a stop that did not work cannot
@@ -195,10 +195,8 @@ int main(void) {
             else
                 snprintf(note, sizeof note, "Could not reach the loader on port %d.", ELFLDR_PORT);
         }
-        if (quit_at < 0 && (pressed & ORBIS_PAD_BUTTON_OPTIONS)) {
-            quit_at = now;
-            snprintf(note, sizeof note, "Closing. The server keeps running.");
-        }
+        if (pressed & ORBIS_PAD_BUTTON_OPTIONS)
+            snprintf(note, sizeof note, "Close the app with the PS button. The server keeps running.");
 
         screen_clear(0x000000);
         screen_text(120, 140, 96, 0xFFFFFF, "PS4LM");
@@ -217,10 +215,9 @@ int main(void) {
             snprintf(row, sizeof row, "%s %s", i == sel ? ">" : " ", models[i]);
             screen_text(120, 630 + i * 40, 32, i == sel ? 0xFFFFFF : 0x808080, row);
         }
-        screen_text(120, 1040, 30, 0xA0A0A0, "X start   O stop   Up/Down model   OPTIONS quit");
+        screen_text(120, 1040, 30, 0xA0A0A0, "X start   O stop   Up/Down model   PS button closes");
         screen_present();
-
-        if (quit_at >= 0 && now - quit_at > 2000)
-            return 0;
+        /* No return from main: an installed app that exits that way dies
+         * with SIGSYS (seen 2026-10-21). The PS button closes it. */
     }
 }

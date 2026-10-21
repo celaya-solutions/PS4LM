@@ -7,6 +7,8 @@
 
 #include <string.h>
 
+#include <orbis/SystemService.h>
+
 #include "graphics.h"
 
 extern "C" {
@@ -46,6 +48,9 @@ int screen_init(void) {
     if (!scene->Init(0xC000000, 2))
         return -1;
     scene->SetActiveFrameBuffer(0); /* the sample never sets it: a garbage index faults on the first draw */
+    /* With a pic1.png in the package the PS4 shows it as a splash screen
+     * until the app hides it. */
+    sceSystemServiceHideSplashScreen();
     return face_for(40) ? 0 : -1;
 }
 
