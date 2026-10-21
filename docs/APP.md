@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Home-Screen App
-Version:     v1.3.0
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      171b37e03beea67a8f387c87a3565d585a4b82537b8d6dec10080016dbea8e92
+SHA256:      fc90f47287825ba9becfd47bf793b635f010fa9c95242b94ee1c4a7a883f8f72
 Chain:       solana-mainnet
-Tx:          2rQnJ5NFVtYecNaL6aZ2KFQDLBhqvExLYD3QhN9EVyjMzk6p7whKjbGNiMBZ7m7MFXmkqw4KD9GTXuHNtAmdvtck
+Tx:          5ae5YpkornAbkybt8zuE3oZT3uHMM8wJ64ixYGN38iRpoMQRUd7Vjn54nobRZtkoD8L8ixq1phW521MGgVbp8Z8h
 License:     GPL-3.0-or-later
 ```
 
@@ -29,13 +29,9 @@ checks, also on the console, with `--no-jinja` (see below):
 - The app's stop line (`stop.elf` with `llama-server`) stopped the server in
   about 1 s; elfldr stayed up.
 
-**Known problem:** on 2026-10-21 every llama-server build (this session's and
-another session's) died at `load_model: initializing` with PRX_RUNTIME_ERROR:
-a bad `free` inside the chat-template (jinja) setup, called from
-`server_context_impl::init`. This is the same crash as on 2026-10-20. Until it
-is fixed, keep `--no-jinja` in `server.conf` (`serve.sh ... -- --no-jinja`
-writes it), and the app launches with it too. Replies then show the model's
-raw `<think>` text.
+**Fixed:** llama-server died starting with jinja (chat templates) until
+2026-10-21: Sony's `localtime` fails in a payload (PORTING 19). With the fix,
+`--no-jinja` is no longer needed; leave `extra` in `server.conf` empty.
 
 ## What it is and is not
 
@@ -112,4 +108,4 @@ memory, ports 9021 and 8080, the console IP, and whether it can read and write
 6. `stop.elf` now sends SIGKILL 10 s after SIGTERM: llama-server once hung in
    its exit path ("cleaning up before exit...") holding its memory. The
    SIGKILL branch has not fired on the console yet.
-4. The jinja crash above, after a console restart: does a restart clear it?
+4. Done 2026-10-21: the jinja start crash is fixed (PORTING 19).

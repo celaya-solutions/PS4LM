@@ -11,12 +11,14 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <wchar.h>
 
 #include "compat.h"
+#include "utc_tm.h"
 
 static int set_fd_flags(int fd, int flags) {
     if (flags & O_CLOEXEC) {
@@ -93,6 +95,16 @@ struct lconv *localeconv(void) {
         .int_p_sign_posn = CHAR_MAX, .int_n_sign_posn = CHAR_MAX,
     };
     return &c;
+}
+
+/* Sony's localtime raises PRX_RUNTIME_ERROR in a payload, at least some of
+ * the time (2026-10-21: every llama-server start with jinja died in
+ * common_chat's format_time, from the template's date string). A payload has
+ * no time zone setting to honour, so this is UTC, by arithmetic only. */
+struct tm *localtime(const time_t *t) {
+    static struct tm tm;
+    ps4lm_utc_tm(*t, &tm);
+    return &tm;
 }
 
 /* Declared by the SDK's sys/mman.h, exported by nothing; libkernel exports

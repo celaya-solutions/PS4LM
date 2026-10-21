@@ -5,7 +5,7 @@
 # the Mac agree, and uploads stop.elf so the app's O button works.
 #
 #   scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf
-#   scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf 2048 -- --no-jinja
+#   scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf 2048 -- -np 1
 #
 # Needs llama-server built with the SIGPIPE fix in ps4/compat/log.c: nothing
 # reads its output once this script hangs up.

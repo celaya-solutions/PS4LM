@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Models
-Version:     v1.2.0
+Version:     v1.3.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      781160cca5fbfec6513899f9da899866564ba1dea4bb6ebad6648c0fff5334b7
+SHA256:      2c8430867c39582594e3bd8e6f2a2b06efb51a59271fcfd2d2ae1e6ef3f46f54
 Chain:       solana-mainnet
-Tx:          AH6753eHr9EKGzZpMzQpoNHTqz3ppDkjtK4XVcsg79abjQ4HELAQJ7BeAynmvdwPwQqCNW3hPA1P1gsCQpWZLgJ
+Tx:          mdeeRyoW68SnC7YQNwhnQMUNr9K6tfjGsdjDmyXQqxdMFr5vYYAsUwJndjdvAG7jtddsMdoYuGyB6GPn6XRQgz8
 License:     GPL-3.0-or-later
 ```
 
@@ -63,7 +63,8 @@ scripts/run.sh llama-server -m /data/PS4LM/models/gemma-4-E2B-it-Q4_K_M.gguf \
     -sysf /data/PS4LM/prompts/ps4lm-system.txt
 ```
 
-- `--no-jinja`: needed while the jinja start crash is open (docs/APP.md).
+- `--no-jinja`: was needed while the jinja start crash was open (fixed,
+  PORTING 19); `patches/0005` keeps this no-jinja path working.
   Upstream has no built-in Gemma 4 format, so without jinja the server quits
   with "this custom template is not supported". `patches/0005` adds one
   (`gemma4`): all system text in one system turn, then `<|turn>user` /

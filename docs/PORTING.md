@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Porting Notes
-Version:     v1.3.0
+Version:     v1.4.0
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      bd59f7f06038d27bdd0d4d58815193c771851629d5ecada7233b0441e28f30d3
+SHA256:      e194a23f314c05ef0375c09ce5be266aa84eaefe66e0552d96a1df4bcb8fdfc1
 Chain:       solana-mainnet
-Tx:          4S2NqrFGT8iDghS1WcbQtGKX4ixNvcv1SYF34yM9pYu8CzgvsQ2zWnquES3MQXrPKFv9UTH3KwhjhgK7zdSQCWtd
+Tx:          2S9pfhkufeJJAQgLsNSiPmPpyFZqSpSQoLoDYjWA3bon2od17EhnEDiWbNiknZNjNirN5C2YMpa3p6bDeciMhKPe
 License:     GPL-3.0-or-later
 ```
 
@@ -208,6 +208,31 @@ Every workaround: symptom, cause, fix, file. Newest last.
 - File: `ps4/compat/compat.c`.
 - Status: works on the console (2026-10-21): the long chats in BENCH.md send
   `temperature` 0.7 on every turn.
+
+## 19. `localtime` raises PRX_RUNTIME_ERROR: llama-server died starting jinja
+
+- Symptom: llama-server with jinja (the default) died at `load_model:
+  initializing, n_slots = ...`. Kernel log: PRX_RUNTIME_ERROR in
+  libSceLibcInternal, then often "Coredump process crashed". `--no-jinja`
+  started fine. On 2026-10-20 and 2026-10-21 it came and went: some
+  starts with jinja worked, then every one failed, including the first
+  start after a console restart.
+- Cause: the backtrace (offset `0x200004000`, see above) is
+  `server_context_impl::init` -> `common_chat_templates_support_enable_thinking`
+  -> `common_chat_templates_apply_jinja` -> `format_time` -> Sony's
+  `localtime`. llama.cpp formats today's date for every chat template
+  (`common_chat_extra_context`). Like `mbtowc` (11), Sony's `localtime`
+  fails in a payload; why only some of the time is not known.
+- Fix: PS4LM's own `localtime`: UTC, by arithmetic only
+  (`ps4/compat/utc_tm.h`, checked against the Mac's `gmtime_r` on 200,000
+  times by `ps4/compat/tests/test_utc_tm.c`). A payload has no time zone
+  setting, so the template's date is the UTC date. Sony's `strftime`
+  (`std::put_time`) works.
+- Files: `ps4/compat/compat.c`, `ps4/compat/utc_tm.h`.
+- Status: works on the console (2026-10-21): the same build without the fix
+  died twice in a row; with it, the server started with jinja in 14 s on a
+  console whose crash handler had just crashed, and answered chats with
+  `chat_template_kwargs: {"enable_thinking": false}` (no `<think>` text).
 
 ## Checked and not needed
 
