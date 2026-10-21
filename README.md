@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.7.1
+Version:     v1.7.2
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      0f1ab9447e440512cd8bd88324ddd9cc936d8c967376dfa78f31766117bcb762
+SHA256:      9bef97b61b4f44569d44b2259277e0f70ccaa8aae39d9e7e6fd65ca930666629
 Chain:       solana-mainnet
-Tx:          5zTatrsZZTcAw2f6LzCAoHkTGRkvFuemPQrHmGBYFDQvHbWbbEHNo7zycMbQxmsYRoprFuFwNEYUnpbDGjc6CH9B
+Tx:          bm1cmut2mvvecMTu8pKBviNfqvn5hDiCNVLXV74Q4L9u9y1Brs1SrbUsXo15FS1SMX1dK6xChj8rKK2LR4nXTx4
 License:     GPL-3.0-or-later
 ```
 
@@ -67,8 +67,11 @@ port: 9090 for GoldHEN (the default), 9020 for HEN VTX.
 Solutions Research, talking as the console itself. `patches/0003` turns
 `--system-prompt-file` back on for `llama-server` and puts that text first in
 every chat; a client's own system message is kept after it, in the same
-message. It is about 160 tokens, so a slot's first reply waits ~20 s longer
-on the console; later turns reuse the cached prompt.
+message. It is about 195 tokens, so a slot's first reply waits ~25 s longer
+on the console; later turns reuse the cached prompt. Without it the model
+introduces itself as Qwen, its own name. `scripts/serve.sh` uploads the prompt
+and passes `-sysf` for you, and writes it into `server.conf`, so the
+home-screen app starts the server with it too.
 
 ```sh
 curl --ftp-create-dirs -T prompts/ps4lm-system.txt ftp://$PS4_HOST:2121/data/PS4LM/prompts/

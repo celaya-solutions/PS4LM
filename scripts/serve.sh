@@ -2,7 +2,8 @@
 # Starts llama-server on the console and returns once the chat is up, the same
 # way the home-screen app does (app/src/main.cpp): one launch line to elfldr,
 # then the socket is closed. Also writes /data/PS4LM/server.conf so the app and
-# the Mac agree, and uploads stop.elf so the app's O button works.
+# the Mac agree, uploads stop.elf so the app's O button works, and uploads the
+# system prompt (prompts/ps4lm-system.txt) that the server starts with.
 #
 #   scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf
 #   scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf 2048 -- -np 1
@@ -27,7 +28,10 @@ esac
 if [ "$ctx" -lt 256 ] || [ "$ctx" -gt 32768 ]; then
     echo "serve.sh: CTX must be 256..32768, got $ctx" >&2; exit 2
 fi
-extra=("$@")
+prompt=/data/PS4LM/prompts/ps4lm-system.txt
+# The system prompt goes first in extra, so the app's X button (it reads server.conf) uses it too.
+# A -sysf the caller passes comes later and wins.
+extra=(-sysf "$prompt" "$@")
 threads=2
 port=8080
 
@@ -53,6 +57,7 @@ if [ -d "$root/probes/stop" ]; then
 else
     echo "serve.sh: no probes/stop in this checkout; the app's O button needs stop.elf" >&2
 fi
+curl -sS --ftp-create-dirs -T "$root/prompts/ps4lm-system.txt" "ftp://$host:$ftp$prompt"
 
 printf 'model=%s\nctx=%s\nthreads=%s\nport=%s\nextra=%s\n' "$model" "$ctx" "$threads" "$port" "${extra[*]:-}" |
     curl -sS --ftp-create-dirs -T - "ftp://$host:$ftp/data/PS4LM/server.conf"

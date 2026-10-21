@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM Home-Screen App
-Version:     v1.4.0
+Version:     v1.4.1
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      fc90f47287825ba9becfd47bf793b635f010fa9c95242b94ee1c4a7a883f8f72
+SHA256:      55316009c4fb846c3d64ba10a6452a386dfac4aba2032e62b3d22dad3a15c502
 Chain:       solana-mainnet
-Tx:          5ae5YpkornAbkybt8zuE3oZT3uHMM8wJ64ixYGN38iRpoMQRUd7Vjn54nobRZtkoD8L8ixq1phW521MGgVbp8Z8h
+Tx:          2psVFeboHENMaDvKTUqVqJFHwgX93SL7nFX6xcspKYR1kX3q64JYqnNk6mcu4LeficoDhUiLbMAwL5SHStdP7gGV
 License:     GPL-3.0-or-later
 ```
 
@@ -31,7 +31,10 @@ checks, also on the console, with `--no-jinja` (see below):
 
 **Fixed:** llama-server died starting with jinja (chat templates) until
 2026-10-21: Sony's `localtime` fails in a payload (PORTING 19). With the fix,
-`--no-jinja` is no longer needed; leave `extra` in `server.conf` empty.
+`--no-jinja` is no longer needed. `extra` in `server.conf` holds
+`-sysf /data/PS4LM/prompts/ps4lm-system.txt` (`serve.sh` writes it); keep it,
+or the server starts without the system prompt and the model introduces itself
+as Qwen.
 
 ## What it is and is not
 
@@ -47,9 +50,11 @@ checks, also on the console, with `--no-jinja` (see below):
 scripts/serve.sh Qwen3.5-0.8B-Q4_K_M.gguf
 ```
 
-This puts `llama-server.elf` and `stop.elf` in `/data/PS4LM/bin`, writes
-`/data/PS4LM/server.conf`, starts the server and prints the chat address.
-Without those two files, X and O in the app do nothing.
+This puts `llama-server.elf` and `stop.elf` in `/data/PS4LM/bin`, the system
+prompt in `/data/PS4LM/prompts`, writes `/data/PS4LM/server.conf` (with `-sysf`
+in `extra`, so the X button starts the server with the prompt), starts the
+server and prints the chat address. Without those two programs, X and O in the
+app do nothing.
 
 `llama-server.elf` must include the SIGPIPE fix in `ps4/compat/log.c`
 (branch `phase-4`): the app hangs up on elfldr after the launch line, so
