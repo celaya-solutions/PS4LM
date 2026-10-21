@@ -6,6 +6,8 @@
  */
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <locale.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -67,6 +69,30 @@ int mbtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n) {
         return -1;
     }
     return (int)r;
+}
+
+/* Sony's localeconv returns an empty decimal_point in a payload, even after
+ * setlocale(LC_NUMERIC, "C") (probes/libcprobe). nlohmann/json puts that
+ * character in place of each '.' before strtod, so every JSON number with a
+ * fraction (llama-server's "temperature": 0.7) failed its endptr assert and
+ * aborted the server. This one is the "C" locale's, which is the only one a
+ * payload uses. */
+struct lconv *localeconv(void) {
+    static char dot[] = ".", empty[] = "";
+    static struct lconv c = {
+        .decimal_point = dot, .thousands_sep = empty, .grouping = empty,
+        .int_curr_symbol = empty, .currency_symbol = empty,
+        .mon_decimal_point = empty, .mon_thousands_sep = empty,
+        .mon_grouping = empty, .positive_sign = empty, .negative_sign = empty,
+        .int_frac_digits = CHAR_MAX, .frac_digits = CHAR_MAX,
+        .p_cs_precedes = CHAR_MAX, .p_sep_by_space = CHAR_MAX,
+        .n_cs_precedes = CHAR_MAX, .n_sep_by_space = CHAR_MAX,
+        .p_sign_posn = CHAR_MAX, .n_sign_posn = CHAR_MAX,
+        .int_p_cs_precedes = CHAR_MAX, .int_n_cs_precedes = CHAR_MAX,
+        .int_p_sep_by_space = CHAR_MAX, .int_n_sep_by_space = CHAR_MAX,
+        .int_p_sign_posn = CHAR_MAX, .int_n_sign_posn = CHAR_MAX,
+    };
+    return &c;
 }
 
 /* Declared by the SDK's sys/mman.h, exported by nothing; libkernel exports

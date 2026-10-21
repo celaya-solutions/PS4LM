@@ -23,7 +23,7 @@
 static const char *const steps[] = {
     "setlocale", "mb_cur_max", "mbrtowc", "mbtowc", "mbtowc_reset", "mbrlen",
     "mbsrtowcs", "wcrtomb", "wcsrtombs", "localeconv", "iswspace", "strcoll",
-    "strxfrm", "wcscoll", "wcsxfrm", "wcstol", "wcstod", "swprintf", "strtod",
+    "strxfrm", "wcscoll", "wcsxfrm", "wcstol", "wcstod", "swprintf", "strtod", "strtod_end",
 };
 
 static long run(const char *step) {
@@ -76,6 +76,12 @@ static long run(const char *step) {
         return swprintf(wb, 8, w_fmt, 7);
     if (!strcmp(step, "strtod"))
         return (long)(strtod("4.5", NULL) * 10);
+    if (!strcmp(step, "strtod_end")) { /* characters strtod reads of "0.7" */
+        const char *num = "0.7";
+        char *stop;
+        strtod(num, &stop);
+        return stop - num;
+    }
     return -9999;
 }
 
