@@ -1,12 +1,12 @@
 ```text
 Document:    PS4LM: llama.cpp on a PS4
-Version:     v1.7.0
+Version:     v1.7.1
 Author:      Celaya Solutions
 Contact:     hello@celayasolutions.com
 Date:        2026-10-21
-SHA256:      47f82ab9ffe26721205dc1e1fa1f4545abe79f719bc5363b67cece0fcfe99344
+SHA256:      0f1ab9447e440512cd8bd88324ddd9cc936d8c967376dfa78f31766117bcb762
 Chain:       solana-mainnet
-Tx:          BQxPcufRXpCmJL9XxUq2nV3hTKAxbL5un2rw8jHk2R7SLyfLncXZh5fDjDeqdXf13tcFZ2x9aCcacJmUQuRMv1o
+Tx:          5zTatrsZZTcAw2f6LzCAoHkTGRkvFuemPQrHmGBYFDQvHbWbbEHNo7zycMbQxmsYRoprFuFwNEYUnpbDGjc6CH9B
 License:     GPL-3.0-or-later
 ```
 
@@ -85,6 +85,22 @@ It needs [uv](https://docs.astral.sh/uv/); `.mcp.json` registers it for Claude
 Code in this folder. Other clients: `uv run --script scripts/ps4_mcp.py` over
 stdio. It never touches the loader port, which GoldHEN closes after one
 connection.
+
+Claude Desktop: add this under `mcpServers` in
+`~/Library/Application Support/Claude/claude_desktop_config.json`, then quit
+and reopen the app. Desktop starts servers with a bare PATH and no working
+folder, so use full paths and give the PATH that `run.sh` needs:
+
+```json
+"ps4": {
+  "command": "/opt/homebrew/bin/uv",
+  "args": ["run", "--script", "/path/to/ps4-llm/scripts/ps4_mcp.py"],
+  "env": {"PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"}
+}
+```
+
+The one-console rule still holds: a Desktop chat and a Claude Code session can
+both reach the console, so check `status` before starting a payload.
 
 `AGENTS.md` holds the rules for coding agents (Codex reads it; `CLAUDE.md`
 points Claude Code to it). Codex gets the same MCP server from
